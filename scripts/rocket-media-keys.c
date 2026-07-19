@@ -193,9 +193,10 @@ int main(void) {
 
     long long last_time[KEY_MAX + 1] = {0};
 
-    /* Meta key state: detect standalone Meta press to launch menu */
-    int meta_down = 0;        /* is Meta currently held? */
-    int meta_combo = 0;       /* was another key pressed while Meta was held? */
+    /* Meta/Alt key state for combos */
+    int meta_down = 0;
+    int meta_combo = 0;
+    int alt_down = 0;
 
     while (running) {
         fd_set rfds;
@@ -220,39 +221,39 @@ int main(void) {
 
             if (ev.type != EV_KEY || ev.code > KEY_MAX) continue;
 
-            /* Non-grabbed keyboards: only process media keys + meta */
-            if (!devs[i].grab && !is_media_key(ev.code) && !is_meta_key(ev.code))
+            /* Non-grabbed keyboards: only process media keys + meta + alt */
+            if (!devs[i].grab && !is_media_key(ev.code) && !is_meta_key(ev.code)
+                && ev.code != KEY_LEFTALT && ev.code != KEY_RIGHTALT)
                 continue;
 
             int code = ev.code;
             int value = ev.value; /* 1=press, 0=release, 2=repeat */
 
-            /* Meta key tracking for standalone press → launch menu */
+            /* Meta key tracking */
             if (is_meta_key(code)) {
                 if (value == 1) {
-                    /* Meta pressed */
                     meta_down = 1;
                     meta_combo = 0;
                 } else if (value == 0 && meta_down) {
-                    /* Meta released */
                     meta_down = 0;
-                    if (!meta_combo) {
-                        /* Standalone Meta press → launch menu */
-                        run_cmd("rocket-d-menu");
-                    }
                     meta_combo = 0;
                 }
-                /* Don't apply media key cooldown to meta events */
                 continue;
+            }
+
+            /* Track Alt key for Meta+Alt combos */
+            if (code == KEY_LEFTALT || code == KEY_RIGHTALT) {
+                if (value == 1) alt_down = 1;
+                else if (value == 0) alt_down = 0;
             }
 
             /* If Meta is down and another key is pressed, it's a combo */
             if (meta_down && value == 1) {
                 meta_combo = 1;
-                /* Handle Meta+key combos */
                 switch (code) {
                     case KEY_SPACE:
-                        run_cmd("wofi --show drun -config $HOME/.config/wofi/config -style $HOME/.config/wofi/style.css");
+                        if (alt_down)
+                            run_cmd("rocket-d-menu");
                         break;
                     case KEY_ENTER:
                         run_cmd("kitty");
