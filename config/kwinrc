@@ -71,7 +71,6 @@ CloseOnDoubleClickOnMenu=false
 Focus stealing prevention=1
 Focus stealing prevention force=0
 Frame=2
-Placement=6
 Separate screen focus=false
 TitleAlignment=Left
 UnredirectFullscreen=false
