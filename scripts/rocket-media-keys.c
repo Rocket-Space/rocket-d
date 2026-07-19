@@ -41,9 +41,17 @@ static int is_media_key(int code) {
     return 0;
 }
 
+static int is_meta_key(int code) {
+    return code == KEY_LEFTMETA || code == KEY_RIGHTMETA;
+}
+
+static int is_functional_key(int code) {
+    return code >= KEY_F1 && code <= KEY_F24;
+}
+
 typedef struct {
     int fd;
-    int grab; /* 1=grabbed exclusively, 0=monitor only */
+    int grab;
 } DeviceEntry;
 
 static int open_input_devices(DeviceEntry *devs, int max) {
@@ -79,11 +87,11 @@ static int open_input_devices(DeviceEntry *devs, int max) {
             continue;
         }
 
-        int has_media = 0;
         int media_keys[] = {KEY_VOLUMEUP, KEY_VOLUMEDOWN, KEY_MUTE,
                            KEY_BRIGHTNESSUP, KEY_BRIGHTNESSDOWN,
                            KEY_PLAYPAUSE, KEY_NEXTSONG, KEY_PREVIOUSSONG,
                            KEY_STOPCD, KEY_MICMUTE, KEY_MEDIA};
+        int has_media = 0;
         for (int i = 0; i < (int)(sizeof(media_keys)/sizeof(media_keys[0])); i++) {
             int k = media_keys[i];
             if (keybits[k / (sizeof(unsigned long) * 8)] & (1UL << (k % (sizeof(unsigned long) * 8)))) {
@@ -92,12 +100,16 @@ static int open_input_devices(DeviceEntry *devs, int max) {
             }
         }
 
-        if (!has_media) {
+        /* Also accept devices that have Meta key (for launcher binding) */
+        int has_meta = 0;
+        if (keybits[KEY_LEFTMETA / (sizeof(unsigned long) * 8)] & (1UL << (KEY_LEFTMETA % (sizeof(unsigned long) * 8))))
+            has_meta = 1;
+
+        if (!has_media && !has_meta) {
             close(fd);
             continue;
         }
 
-        /* Check if this is a full keyboard (has letter keys) */
         int has_letters = 0;
         for (int k = KEY_A; k <= KEY_Z; k++) {
             if (keybits[k / (sizeof(unsigned long) * 8)] & (1UL << (k % (sizeof(unsigned long) * 8)))) {
@@ -108,11 +120,9 @@ static int open_input_devices(DeviceEntry *devs, int max) {
 
         devs[count].fd = fd;
         if (has_letters) {
-            /* Keyboard: monitor only, don't grab */
             devs[count].grab = 0;
             fprintf(stderr, "rocket-media-keys: monitoring keyboard: %s [%s]\n", path, name);
         } else {
-            /* Dedicated media device: grab exclusively */
             ioctl(fd, EVIOCGRAB, 1);
             devs[count].grab = 1;
             fprintf(stderr, "rocket-media-keys: grabbed %s [%s]\n", path, name);
@@ -183,6 +193,10 @@ int main(void) {
 
     long long last_time[KEY_MAX + 1] = {0};
 
+    /* Meta key state: detect standalone Meta press to launch menu */
+    int meta_down = 0;        /* is Meta currently held? */
+    int meta_combo = 0;       /* was another key pressed while Meta was held? */
+
     while (running) {
         fd_set rfds;
         FD_ZERO(&rfds);
@@ -204,15 +218,45 @@ int main(void) {
             ssize_t n = read(devs[i].fd, &ev, sizeof(ev));
             if (n != sizeof(ev)) continue;
 
-            if (ev.type == EV_KEY && ev.code <= KEY_MAX) {
-                /* For non-grabbed keyboards, only process media keys */
-                if (!devs[i].grab && !is_media_key(ev.code))
-                    continue;
+            if (ev.type != EV_KEY || ev.code > KEY_MAX) continue;
 
+            /* Non-grabbed keyboards: only process media keys + meta */
+            if (!devs[i].grab && !is_media_key(ev.code) && !is_meta_key(ev.code))
+                continue;
+
+            int code = ev.code;
+            int value = ev.value; /* 1=press, 0=release, 2=repeat */
+
+            /* Meta key tracking for standalone press → launch menu */
+            if (is_meta_key(code)) {
+                if (value == 1) {
+                    /* Meta pressed */
+                    meta_down = 1;
+                    meta_combo = 0;
+                } else if (value == 0 && meta_down) {
+                    /* Meta released */
+                    meta_down = 0;
+                    if (!meta_combo) {
+                        /* Standalone Meta press → launch menu */
+                        run_cmd("rocket-d-menu");
+                    }
+                    meta_combo = 0;
+                }
+                /* Don't apply media key cooldown to meta events */
+                continue;
+            }
+
+            /* If Meta is down and another key is pressed, it's a combo */
+            if (meta_down && value == 1) {
+                meta_combo = 1;
+            }
+
+            /* Media key handling with cooldown */
+            if (is_media_key(code)) {
                 long long now = time_ms();
-                if (now - last_time[ev.code] >= COOLDOWN_MS) {
-                    last_time[ev.code] = now;
-                    handle_key(ev.code, ev.value);
+                if (now - last_time[code] >= COOLDOWN_MS) {
+                    last_time[code] = now;
+                    handle_key(code, value);
                 }
             }
         }
