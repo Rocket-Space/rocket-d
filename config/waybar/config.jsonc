@@ -20,39 +20,40 @@
     "memory",
     "battery"
   ],
-
   "custom/rocket-logo": {
     "format": " R",
     "tooltip": false,
     "on-click": "rocket-d-menu"
   },
-
   "clock": {
     "format": "{:%A %H:%M}",
     "format-alt": "{:%d %B %Y}",
     "tooltip-format": "<tt>{calendar}</tt>",
     "tooltip": true
   },
-
   "cpu": {
     "interval": 5,
-    "format": " {usage}%",
+    "format": " {usage}%",
     "tooltip-format": "CPU: {usage}%",
     "on-click": "rocket-d-terminal btop"
   },
-
   "memory": {
     "interval": 10,
-    "format": " {percentage}%",
+    "format": " {percentage}%",
     "tooltip-format": "RAM: {used:0.1f}G / {total:0.1f}G",
     "on-click": "rocket-d-terminal btop"
   },
-
   "network": {
-    "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+    "format-icons": [
+      "󰤯",
+      "󰤟",
+      "󰤢",
+      "󰤥",
+      "󰤨"
+    ],
     "format": "{icon}",
     "format-wifi": "{icon}",
-    "format-ethernet": "󰀂",
+    "format-ethernet": "󰁂",
     "format-disconnected": "󰤮",
     "tooltip-format-wifi": "{essid}\n⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}",
     "tooltip-format-ethernet": "⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}",
@@ -61,29 +62,53 @@
     "spacing": 1,
     "on-click": "nm-connection-editor"
   },
-
   "pulseaudio": {
-    "format": "{icon}",
-    "format-muted": "󰝟",
+    "format": "󰕾 {volume}%",
+    "format-muted": "󰝟 Muted",
     "format-icons": {
-      "headphone": "󰋋",
-      "headset": "󰋋",
-      "default": ["󰕿", "󰖀", "󰕾"]
+      "headphone": "󰈋",
+      "headset": "󰈋",
+      "default": [
+        "󰖀",
+        "󰕿",
+        "󰕾"
+      ]
     },
     "scroll-step": 5,
     "on-click": "pavucontrol",
     "tooltip-format": "Volume: {volume}%"
   },
-
   "battery": {
     "format": "{capacity}% {icon}",
-    "format-charging": "{capacity}% ",
+    "format-charging": "{capacity}% 󰖘",
     "format-icons": {
-      "charging": ["󰢜", "󰂆", "󰂇", "󰂈", "󰢝", "󰂉", "󰢞", "󰂊", "󰂋", "󰂅"],
-      "default": ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
+      "charging": [
+        "󰢜",
+        "󰢆",
+        "󰢇",
+        "󰢈",
+        "󰢝",
+        "󰢉",
+        "󰢞",
+        "󰢊",
+        "󰢋",
+        "󰢅"
+      ],
+      "default": [
+        "󰝺",
+        "󰝻",
+        "󰝼",
+        "󰝽",
+        "󰝾",
+        "󰝿",
+        "󰞀",
+        "󰞁",
+        "󰞂",
+        "󰝹"
+      ]
     },
-    "format-full": "󰂅",
-    "format-plugged": "󰚥",
+    "format-full": "󰞅",
+    "format-plugged": "󰖖",
     "states": {
       "warning": 20,
       "critical": 10
