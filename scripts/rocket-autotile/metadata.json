@@ -1,16 +1,11 @@
 {
-    "KPackageStructure": "KWin/Script",
     "KPlugin": {
-        "Authors": [{"Name": "Rocket D"}],
-        "Description": "Simple auto-tiling for KWin (dwindle-style)",
-        "Id": "rocket-autotile",
-        "License": "MIT",
-        "Name": "Rocket Auto-Tile",
-        "Version": "1.0.0"
+        "Id": "rocket-maximize",
+        "Name": "Rocket Maximize",
+        "Description": "Maximize all new windows",
+        "Category": "Appearance"
     },
-    "X-KDE-ConfigModule": "kwin/effects/configs/kcm_kwin4_genericscripted",
-    "X-KDE-PluginKeyword": "rocket-autotile",
     "X-Plasma-API": "declarativescript",
-    "X-Plasma-API-Minimum-Version": "6.0",
-    "X-Plasma-MainScript": "ui/main.qml"
+    "X-Plasma-Module": "kwin/effects/configs/rocket-maximize",
+    "X-KWin-Version": "2"
 }
