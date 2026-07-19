@@ -1,6 +1,6 @@
 [General]
 count=4
-description=Global transparency for all windows
+description=Maximize all windows
 ruletypes=*
 
 [1]
@@ -25,9 +25,9 @@ OpacityInactiveRule=2
 Types=445
 clientmachinematch=0
 clientmachine=localhost
+wmclass=Alacritty|kitty|foot|wezterm|yakuake|tmux|dolphin|nautilus|thunar|pcmanfm
 wmclasscomplete=false
 wmclassmatch=3
-wmclass=Alacritty|kitty|foot|wezterm|yakuake|tmux|dolphin|nautilus|thunar|pcmanfm
 
 [3]
 Description=Exclude Panel and Dock
@@ -38,17 +38,17 @@ OpacityInactiveRule=2
 Types=445
 clientmachinematch=0
 clientmachine=localhost
+wmclass=waybar|plasmashell|kded|org.kde.*
 wmclasscomplete=false
 wmclassmatch=3
-wmclass=waybar|plasmashell|kded|org.kde.*
 
 [4]
 Description=Maximize All Windows
-MaximizeHorizontally=2
-MaximizeVertically=2
-Types=1,3,4,5,6,7,8,9,10,11,12
+MaximizeHorizontally=1
+MaximizeVertically=1
+Types=445
 clientmachinematch=0
 clientmachine=localhost
 wmclasscomplete=false
 wmclassmatch=0
-windowtypes=0
+windowtypes=445
