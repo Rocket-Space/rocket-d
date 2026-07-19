@@ -1,0 +1,13 @@
+#!/bin/bash
+profile=$(powerprofilesctl get)
+case "$profile" in
+    power-saver)
+        echo '{"text": " Power Saver", "tooltip": "Power Saver (click to cycle)"}'
+        ;;
+    balanced)
+        echo '{"text": " Balanced", "tooltip": "Balanced (click to cycle)"}'
+        ;;
+    performance)
+        echo '{"text": " Performance", "tooltip": "Performance (click to cycle)"}'
+        ;;
+esac

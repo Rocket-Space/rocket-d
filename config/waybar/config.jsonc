@@ -16,8 +16,10 @@
   "modules-right": [
     "network",
     "pulseaudio",
+    "custom/brightness",
     "cpu",
     "memory",
+    "custom/power-profile",
     "battery"
   ],
   "custom/rocket-logo": {
@@ -77,6 +79,22 @@
     "scroll-step": 5,
     "on-click": "pavucontrol",
     "tooltip-format": "Volume: {volume}%"
+  },
+  "custom/brightness": {
+    "exec": "/home/rocket/rocket-d/scripts/waybar-brightness",
+    "return-type": "json",
+    "format": "󰖑 {percentage}%",
+    "tooltip-format": "Brightness: {percentage}%",
+    "on-scroll-up": "brightnessctl s 5%+",
+    "on-scroll-down": "brightnessctl s 5%-",
+    "on-click": "brightnessctl s 100%"
+  },
+  "custom/power-profile": {
+    "exec": "/home/rocket/rocket-d/scripts/waybar-power-profile",
+    "return-type": "json",
+    "format": "{text}",
+    "on-click": "bash -c 'current=$(powerprofilesctl get); case $current in power-saver) powerprofilesctl set balanced;; balanced) powerprofilesctl set performance;; *) powerprofilesctl set power-saver;; esac'",
+    "tooltip": true
   },
   "battery": {
     "format": "{capacity}% {icon}",
