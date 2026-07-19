@@ -221,9 +221,11 @@ int main(void) {
 
             if (ev.type != EV_KEY || ev.code > KEY_MAX) continue;
 
-            /* Non-grabbed keyboards: only process media keys + meta + alt */
+            /* Non-grabbed keyboards: process media keys + meta + alt
+               + ANY key when Meta is held (for combos like Meta+Space) */
             if (!devs[i].grab && !is_media_key(ev.code) && !is_meta_key(ev.code)
-                && ev.code != KEY_LEFTALT && ev.code != KEY_RIGHTALT)
+                && ev.code != KEY_LEFTALT && ev.code != KEY_RIGHTALT
+                && !meta_down)
                 continue;
 
             int code = ev.code;
