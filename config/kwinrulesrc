@@ -1,5 +1,5 @@
 [General]
-count=3
+count=4
 description=Global transparency for all windows
 ruletypes=*
 
@@ -41,3 +41,14 @@ clientmachine=localhost
 wmclasscomplete=false
 wmclassmatch=3
 wmclass=waybar|plasmashell|kded|org.kde.*
+
+[4]
+Description=Maximize All Windows
+MaximizeHorizontally=2
+MaximizeVertically=2
+Types=1,3,4,5,6,7,8,9,10,11,12
+clientmachinematch=0
+clientmachine=localhost
+wmclasscomplete=false
+wmclassmatch=0
+windowtypes=0
