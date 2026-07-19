@@ -69,6 +69,7 @@ killall -q waybar 2>/dev/null || true
 killall -q mako 2>/dev/null || true
 killall -q dunst 2>/dev/null || true
 killall -q swaybg 2>/dev/null || true
+killall -q rocket-media-keys 2>/dev/null || true
 
 # Start services (AFTER KWin is ready)
 if command -v mako &>/dev/null; then
@@ -94,7 +95,14 @@ elif [ -f /usr/lib/polkit-kde-authentication-agent-1 ]; then
     /usr/lib/polkit-kde-authentication-agent-1 &
 fi
 
-/usr/libexec/xdg-desktop-portal -r &>/dev/null &
+if [ -f /usr/libexec/xdg-desktop-portal ]; then
+    /usr/libexec/xdg-desktop-portal -r &>/dev/null &
+fi
+
+# Start media keys daemon (reads HP WMI Fn keys, brightness, volume)
+if command -v rocket-media-keys &>/dev/null; then
+    rocket-media-keys &
+fi
 
 # Keep session alive (wait for KWin)
 wait $KWIN_PID

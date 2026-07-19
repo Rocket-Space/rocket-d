@@ -248,12 +248,3 @@ disableInputCapture=none,Meta+Shift+Esc,Desactivar la captura de la entrada acti
 view_actual_size=none,Meta+0,Ampliar al tamaño real
 view_zoom_in=none,Meta++\tMeta+=,Ampliar
 view_zoom_out=none,Meta+-,Reducir
-
-[MediaControl]
-Decrease Volume=pamixer -d 5,AudioLowerVolume,
-Increase Volume=pamixer -i 5,AudioRaiseVolume,
-Mute=pamixer -t,AudioMute,
-
-[PowerDevil]
-Decrease Screen Brightness=brightnessctl s 5%-,XF86MonBrightnessDown,
-Increase Screen Brightness=brightnessctl s 5%+,XF86MonBrightnessUp,

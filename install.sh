@@ -196,7 +196,9 @@ install_packages_arch() {
 
     # Group 5.5: Build tools
     install_pkg_group "Build Tools" \
-        "zip"
+        "zip" \
+        "gcc" \
+        "make"
 
     # Group 6: Audio (PipeWire)
     install_pkg_group "Audio (PipeWire)" \
@@ -504,6 +506,38 @@ install_autotile() {
     echo -e "  ${GREEN}Rocket Auto-Tile installed${NC}"
 }
 
+install_media_keys() {
+    echo -e "${GREEN}[3.8/7] Building Rocket Media Keys daemon...${NC}"
+
+    local SRC="$ROCKET_D_SOURCE/scripts/rocket-media-keys.c"
+    local BIN="/usr/local/bin/rocket-media-keys"
+
+    if [ ! -f "$SRC" ]; then
+        echo -e "  ${YELLOW}Source not found: $SRC${NC}"
+        return 1
+    fi
+
+    if ! command -v gcc &>/dev/null; then
+        echo -e "  ${YELLOW}gcc not found. Installing build tools...${NC}"
+        sudo pacman -S --needed --noconfirm gcc make 2>/dev/null || true
+    fi
+
+    if command -v gcc &>/dev/null; then
+        gcc -O2 -o /tmp/rocket-media-keys "$SRC" 2>/dev/null
+        if [ $? -eq 0 ]; then
+            sudo cp /tmp/rocket-media-keys "$BIN"
+            sudo chmod +x "$BIN"
+            echo -e "  ${GREEN}Rocket Media Keys installed to $BIN${NC}"
+        else
+            echo -e "  ${RED}Compilation failed${NC}"
+            return 1
+        fi
+    else
+        echo -e "  ${RED}gcc not available, cannot build media keys daemon${NC}"
+        return 1
+    fi
+}
+
 install_wallpapers() {
     echo -e "${GREEN}[4/7] Setting up wallpapers...${NC}"
 
@@ -707,6 +741,7 @@ esac
 install_configs
 install_session
 install_autotile
+install_media_keys
 install_wallpapers
 enable_services
 install_helper_scripts
