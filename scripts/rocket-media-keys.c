@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <time.h>
 #include <linux/input.h>
+#include <sys/wait.h>
 
 #define MAX_DEVICES 32
 #define COOLDOWN_MS 150
@@ -231,9 +232,7 @@ int main(void) {
                     case KEY_ENTER:
                         run_cmd("kitty");
                         break;
-                    case KEY_W:
-                        run_cmd("qdbus6 org.kde.KWin /KWin org.kde.KWin.killWindow");
-                        break;
+                    
                     default:
                         /* Meta+Shift+number: move window to desktop */
                         if (shift_down && is_number_key(code, &num)) {

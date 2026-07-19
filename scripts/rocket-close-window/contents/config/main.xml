@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfgfile name="rocket-close-windowrc">
+    <group name="Shortcuts">
+        <entry name="closeWindow" type="String">
+            <label>Cerrar ventana activa</label>
+            <default>Meta+W</default>
+        </entry>
+    </group>
+</kcfgfile>

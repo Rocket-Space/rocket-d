@@ -1,0 +1,15 @@
+{
+    "KPlugin": {
+        "Name": "Rocket Close Window",
+        "Description": "Close active window with Meta+W",
+        "Authors": [{"name": "Rocket"}],
+        "Id": "rocket-close-window",
+        "Version": "1.0",
+        "License": "GPL-3.0",
+        "ServiceTypes": ["KWin/Script"],
+        "X-Plasma-API": "javascript",
+        "X-KWin-Shortcut": "closeWindow",
+        "X-KWin-Shortcut-Default": "Meta+W",
+        "X-KWin-Shortcut-Description": "Cerrar ventana activa"
+    }
+}
