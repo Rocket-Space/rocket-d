@@ -1,0 +1,95 @@
+{
+  "reload_style_on_change": true,
+  "layer": "top",
+  "position": "top",
+  "spacing": 0,
+  "height": 28,
+  "margin-top": 0,
+  "margin-left": 8,
+  "margin-right": 8,
+  "modules-left": [
+    "custom/rocket-logo"
+  ],
+  "modules-center": [
+    "clock"
+  ],
+  "modules-right": [
+    "network",
+    "pulseaudio",
+    "cpu",
+    "memory",
+    "battery"
+  ],
+
+  "custom/rocket-logo": {
+    "format": " R",
+    "tooltip": false,
+    "on-click": "rocket-d-menu"
+  },
+
+  "clock": {
+    "format": "{:%A %H:%M}",
+    "format-alt": "{:%d %B %Y}",
+    "tooltip-format": "<tt>{calendar}</tt>",
+    "tooltip": true
+  },
+
+  "cpu": {
+    "interval": 5,
+    "format": " {usage}%",
+    "tooltip-format": "CPU: {usage}%",
+    "on-click": "rocket-d-terminal btop"
+  },
+
+  "memory": {
+    "interval": 10,
+    "format": " {percentage}%",
+    "tooltip-format": "RAM: {used:0.1f}G / {total:0.1f}G",
+    "on-click": "rocket-d-terminal btop"
+  },
+
+  "network": {
+    "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+    "format": "{icon}",
+    "format-wifi": "{icon}",
+    "format-ethernet": "󰀂",
+    "format-disconnected": "󰤮",
+    "tooltip-format-wifi": "{essid}\n⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}",
+    "tooltip-format-ethernet": "⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}",
+    "tooltip-format-disconnected": "Disconnected",
+    "interval": 3,
+    "spacing": 1,
+    "on-click": "nm-connection-editor"
+  },
+
+  "pulseaudio": {
+    "format": "{icon}",
+    "format-muted": "󰝟",
+    "format-icons": {
+      "headphone": "󰋋",
+      "headset": "󰋋",
+      "default": ["󰕿", "󰖀", "󰕾"]
+    },
+    "scroll-step": 5,
+    "on-click": "pavucontrol",
+    "tooltip-format": "Volume: {volume}%"
+  },
+
+  "battery": {
+    "format": "{capacity}% {icon}",
+    "format-charging": "{capacity}% ",
+    "format-icons": {
+      "charging": ["󰢜", "󰂆", "󰂇", "󰂈", "󰢝", "󰂉", "󰢞", "󰂊", "󰂋", "󰂅"],
+      "default": ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
+    },
+    "format-full": "󰂅",
+    "format-plugged": "󰚥",
+    "states": {
+      "warning": 20,
+      "critical": 10
+    },
+    "interval": 5,
+    "tooltip-format": "{capacity}% - {timeTo}",
+    "on-click": "rocket-d-terminal rocket-d-battery-info"
+  }
+}

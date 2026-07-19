@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Rocket D
+Comment=Lightweight KWin desktop with Omarchy visual style
+Exec=/usr/local/bin/rocket-d-session
+TryExec=/usr/local/bin/rocket-d-session
+Type=Application
+DesktopNames=RocketD
+X-GDM-Session-Type=Wayland
+X-KDE-RunOnGpu=true

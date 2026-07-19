@@ -1,0 +1,17 @@
+width=300
+location=top-left
+anchor=0,0
+offset=0,32
+show=dmenu
+prompt=
+filter_rate=100
+allow_markup=true
+no_actions=true
+halign=fill
+orientation=vertical
+content_halign=fill
+insensitive=true
+allow_images=false
+gtk_dark=true
+layer=overlay
+hide_scroll=true

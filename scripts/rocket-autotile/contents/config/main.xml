@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0">
+    <kcfgfile name=""/>
+    <group name="">
+        <entry name="GapSize" type="int"><default>4</default></entry>
+        <entry name="FilterProcess" type="string"><default>krunner, yakuake, kded, polkit, plasmashell, kwin</default></entry>
+    </group>
+</kcfg>

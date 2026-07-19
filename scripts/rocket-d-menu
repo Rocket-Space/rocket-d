@@ -1,0 +1,399 @@
+#!/bin/bash
+# ╔══════════════════════════════════════════════════════════╗
+# ║              ROCKET D MENU                               ║
+# ║       Omarchy-style hierarchical menu via wofi           ║
+# ╚══════════════════════════════════════════════════════════╝
+
+WOFI_CONFIG="${HOME}/.config/wofi/config-menu"
+WOFI_STYLE="${HOME}/.config/wofi/style-menu.css"
+
+wofi_show() {
+    wofi --dmenu -config "$WOFI_CONFIG" -style "$WOFI_STYLE" "$@"
+}
+
+TERMINAL=$(for t in kitty alacritty foot wezterm ghostty; do
+    command -v "$t" &>/dev/null && echo "$t" && break
+done)
+TERMINAL="${TERMINAL:-xterm}"
+
+launch_app() {
+    nohup "$@" &>/dev/null &
+}
+
+open_terminal() {
+    nohup "$TERMINAL" "$@" &>/dev/null &
+}
+
+open_url() {
+    xdg-open "$1" &>/dev/null &
+}
+
+# ─── Menu Items ───
+
+menu_root() {
+    echo -e "󰀻 Apps\n󰧑 Learn\n󱓞 Trigger\n Style\n Setup\n󰉉 Install\n󰭌 Remove\n Update\n About\n System"
+}
+
+menu_apps() {
+    wofi --show drun -config "${HOME}/.config/wofi/config" -style "${HOME}/.config/wofi/style.css"
+}
+
+menu_learn() {
+    echo -e " Keybindings\n Omarchy Manual\n Hyprland Wiki\n Arch Wiki\n Neovim\n Bash Reference"
+}
+
+menu_learn_action() {
+    case "$1" in
+        *Keybindings*) open_terminal bash -c "cat /usr/local/bin/rocket-d-menu | grep -A2 'bind' | head -20; read" ;;
+        *Omarchy*) open_url "https://learn.omacom.io/2/the-omarchy-manual" ;;
+        *Hyprland*) open_url "https://wiki.hypr.land/" ;;
+        *Arch*) open_url "https://wiki.archlinux.org/title/Main_page" ;;
+        *Neovim*) open_url "https://www.lazyvim.org/keymaps" ;;
+        *Bash*) open_url "https://devhints.io/bash" ;;
+    esac
+}
+
+menu_trigger() {
+    echo -e "󰢌 Reminder\n Capture\n󰧸 Transcode\n Share\n󰔎 Toggle\n Hardware"
+}
+
+menu_trigger_reminder() {
+    echo -e "󰢌 Set one\n󰢌 Show all\n󰢌 Clear all"
+}
+
+menu_trigger_capture() {
+    echo -e " Screenshot\n Screenrecord\n󰴑 Text\n󰃉 Color Picker"
+}
+
+menu_trigger_capture_action() {
+    case "$1" in
+        *Screenshot*) open_terminal bash -c 'grim -g "$(slurp)" - | wl-copy' 2>/dev/null || open_terminal bash -c 'echo "Install grim + slurp for screenshots"; read' ;;
+        *Screenrecord*) open_terminal bash -c 'echo "Recording started. Run pkill wf-recorder to stop."; wf-recorder -f ~/Videos/recording-$(date +%Y%m%d-%H%M%S).mp4' 2>/dev/null || open_terminal bash -c 'echo "Install wf-recorder for screen recording"; read' ;;
+        *Text*) open_terminal bash -c 'echo "OCR: Select area with grim + tesseract"; read' 2>/dev/null ;;
+        *Color*) launch_app hyprpicker -a 2>/dev/null || open_terminal bash -c 'echo "Install hyprpicker for color picking"; read' ;;
+    esac
+}
+
+menu_trigger_share() {
+    echo -e " Clipboard\n File\n Folder"
+}
+
+menu_trigger_toggle() {
+    echo -e "󱄄 Screensaver\n󰔎 Nightlight\n󰍜 Bar\n Notifications"
+}
+
+menu_trigger_toggle_action() {
+    case "$1" in
+        *Bar*) qdbus6 org.kde.KWin /KWin org.kde.KWin.toggleOverView 2>/dev/null ;;
+        *Notifications*) makoctl mode 2>/dev/null ;;
+    esac
+}
+
+menu_trigger_hardware() {
+    echo -e "󰟸 Touchpad\n󰛧 Display\n󰍹 Mirror"
+}
+
+menu_style() {
+    echo -e "󰸌 Theme\n Font\n Background\n󰍜 Bar Position\n About\n󰉉 Install"
+}
+
+menu_style_bar() {
+    echo -e "󰁝 Top\n󰁅 Bottom\n󰁍 Left\n󰁔 Right"
+}
+
+menu_setup() {
+    echo -e "󰍹 Monitors\n Terminal\n Editor\n Browser\n󰈷 Security\n Config"
+}
+
+menu_setup_terminal() {
+    for t in kitty alacritty foot ghostty wezterm; do
+        command -v "$t" &>/dev/null && echo -e " $t"
+    done
+}
+
+menu_setup_browser() {
+    for b in firefox google-chrome chromium brave-browser microsoft-edge zen; do
+        command -v "$b" &>/dev/null && echo -e " $b"
+    done
+}
+
+menu_setup_editor() {
+    for e in nvim vim code cursor zed helix subl emacs; do
+        command -v "$e" &>/dev/null && echo -e " $e"
+    done
+}
+
+menu_install() {
+    echo -e "󰣇 Package (pacman)\n󰣇 AUR (yay)\n Terminal\n Editor\n Browser\n󰵮 Development\n󱚤 AI\n Gaming\n Service"
+}
+
+menu_install_terminal() {
+    echo -e " Alacritty\n Foot\n Ghostty\n Kitty"
+}
+
+menu_install_editor() {
+    echo -e " Neovim\n VSCode\n Cursor\n Zed\n Helix\n Vim\n Emacs"
+}
+
+menu_install_browser() {
+    echo -e " Chrome\n Firefox\n Brave\n Edge\n Zen"
+}
+
+menu_install_dev() {
+    echo -e " Node.js\n Python\n Go\n Rust\n Java\n Ruby\n PHP\n Docker"
+}
+
+menu_install_gaming() {
+    echo -e " Steam\n RetroArch\n Minecraft\n Lutris\n Heroic"
+}
+
+menu_install_service() {
+    echo -e " Spotify\n Signal\n Tailscale\n Bitwarden\n 1Password\n Dropbox"
+}
+
+menu_install_action() {
+    case "$1" in
+        *Package*) open_terminal bash -c 'echo "Enter package name:"; read pkg; sudo pacman -S --needed "$pkg"' ;;
+        *AUR*) open_terminal bash -c 'echo "Enter package name:"; read pkg; yay -S "$pkg"' ;;
+        *Alacritty*) sudo pacman -S --needed alacritty 2>/dev/null || open_terminal bash -c 'sudo pacman -S --needed alacritty' ;;
+        *Foot*) sudo pacman -S --needed foot 2>/dev/null || open_terminal bash -c 'sudo pacman -S --needed foot' ;;
+        *Ghostty*) sudo pacman -S --needed ghostty 2>/dev/null || open_terminal bash -c 'sudo pacman -S --needed ghostty' ;;
+        *Kitty*) sudo pacman -S --needed kitty 2>/dev/null || open_terminal bash -c 'sudo pacman -S --needed kitty' ;;
+        *Neovim*) sudo pacman -S --needed neovim 2>/dev/null || open_terminal bash -c 'sudo pacman -S --needed neovim' ;;
+        *VSCode*) open_terminal bash -c 'yay -S visual-studio-code-bin' ;;
+        *Cursor*) open_terminal bash -c 'yay -S cursor-bin' ;;
+        *Zed*) open_terminal bash -c 'yay -S zed' ;;
+        *Helix*) sudo pacman -S --needed helix 2>/dev/null || open_terminal bash -c 'sudo pacman -S --needed helix' ;;
+        *Chrome*) sudo pacman -S --needed google-chrome 2>/dev/null || open_terminal bash -c 'yay -S google-chrome' ;;
+        *Firefox*) sudo pacman -S --needed firefox 2>/dev/null || open_terminal bash -c 'sudo pacman -S --needed firefox' ;;
+        *Brave*) open_terminal bash -c 'yay -S brave-bin' ;;
+        *Edge*) open_terminal bash -c 'yay -S microsoft-edge-stable-bin' ;;
+        *Zen*) open_terminal bash -c 'yay -S zen-browser-bin' ;;
+        *Node.js*) open_terminal bash -c 'sudo pacman -S --needed nodejs npm' ;;
+        *Python*) open_terminal bash -c 'sudo pacman -S --needed python python-pip' ;;
+        *Go*) open_terminal bash -c 'sudo pacman -S --needed go' ;;
+        *Rust*) open_terminal bash -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh' ;;
+        *Java*) open_terminal bash -c 'sudo pacman -S --needed jdk-openjdk' ;;
+        *Ruby*) open_terminal bash -c 'sudo pacman -S --needed ruby' ;;
+        *PHP*) open_terminal bash -c 'sudo pacman -S --needed php' ;;
+        *Docker*) open_terminal bash -c 'sudo pacman -S --needed docker; sudo systemctl enable --now docker' ;;
+        *Steam*) sudo pacman -S --needed steam 2>/dev/null || open_terminal bash -c 'sudo pacman -S --needed steam' ;;
+        *RetroArch*) sudo pacman -S --needed retroarch 2>/dev/null || open_terminal bash -c 'sudo pacman -S --needed retroarch' ;;
+        *Minecraft*) open_terminal bash -c 'yay -S minecraft-launcher' ;;
+        *Lutris*) sudo pacman -S --needed lutris 2>/dev/null || open_terminal bash -c 'sudo pacman -S --needed lutris' ;;
+        *Heroic*) open_terminal bash -c 'yay -S heroic-games-launcher-bin' ;;
+        *Spotify*) open_terminal bash -c 'yay -S spotify' ;;
+        *Signal*) open_terminal bash -c 'yay -S signal-desktop' ;;
+        *Tailscale*) open_terminal bash -c 'sudo pacman -S --needed tailscale; sudo systemctl enable --now tailscaled' ;;
+        *Bitwarden*) open_terminal bash -c 'yay -S bitwarden' ;;
+        *1Password*) open_terminal bash -c 'yay -S 1password' ;;
+        *Dropbox*) open_terminal bash -c 'yay -S dropbox' ;;
+    esac
+}
+
+menu_remove() {
+    echo -e "󰣇 Package\n Terminal\n Editor\n Browser\n󰵮 Development\n Service"
+}
+
+menu_remove_action() {
+    case "$1" in
+        *Package*) open_terminal bash -c 'echo "Enter package name:"; read pkg; sudo pacman -Rns "$pkg"' ;;
+        *Terminal*) open_terminal bash -c 'echo "Enter terminal to remove:"; read t; sudo pacman -Rns "$t"' ;;
+        *Editor*) open_terminal bash -c 'echo "Enter editor to remove:"; read e; sudo pacman -Rns "$e"' ;;
+        *Browser*) open_terminal bash -c 'echo "Enter browser to remove:"; read b; sudo pacman -Rns "$b"' ;;
+    esac
+}
+
+menu_update() {
+    echo -e " Full System Update\n󰔫 Package Database\n Config Reload\n Hardware\n Firmware"
+}
+
+menu_update_action() {
+    case "$1" in
+        *Full*) open_terminal bash -c 'sudo pacman -Syu' ;;
+        *Package*) open_terminal bash -c 'sudo pacman -Syy' ;;
+        *Config*) qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure 2>/dev/null ;;
+        *Hardware*) open_terminal bash -c 'sudo fwupdmgr get-updates && sudo fwupdmgr update' ;;
+    esac
+}
+
+menu_about() {
+    echo -e " System Info\n Rocket D Version\n󰍜 Display Server\n Licenses"
+}
+
+menu_about_action() {
+    case "$1" in
+        *System*) open_terminal bash -c 'echo "=== Rocket D Desktop ==="; echo ""; uname -a; echo ""; cat /etc/os-release | head -5; echo ""; echo "KWin: $(kwin_wayland --version 2>/dev/null || echo unknown)"; echo ""; free -h; echo ""; df -h / | tail -1; echo ""; read -p "Press enter..."' ;;
+        *Version*) open_terminal bash -c 'echo "Rocket D v1.0"; echo "Lightweight KWin Desktop"; read -p "Press enter..."' ;;
+        *Display*) open_terminal bash -c 'echo "Display Server: Wayland (KWin)"; echo "Session Type: $XDG_SESSION_TYPE"; read -p "Press enter..."' ;;
+        *Licenses*) open_terminal bash -c 'echo "Rocket D - MIT License"; read -p "Press enter..."' ;;
+    esac
+}
+
+menu_system() {
+    echo -e "󰍃 Logout\n󰜉 Restart\n󰐥 Shutdown\n󰒲 Suspend\n Lock"
+}
+
+menu_system_action() {
+    case "$1" in
+        *Logout*) qdbus6 org.kde.KWin /KWin org.kde.KWin.logout 2>/dev/null || systemctl --user exit ;;
+        *Restart*) systemctl reboot ;;
+        *Shutdown*) systemctl poweroff ;;
+        *Suspend*) systemctl suspend ;;
+        *Lock*) loginctl lock-session ;;
+    esac
+}
+
+# ─── Menu Router ───
+
+navigate() {
+    local current="root"
+    local path=""
+
+    while true; do
+        local choice=""
+        case "$current" in
+            root)          choice=$(menu_root | wofi_show -p "Rocket D…" -w 300) ;;
+            apps)          menu_apps; return ;;
+            learn)         choice=$(menu_learn | wofi_show -p "Learn…" -w 300) ;;
+            trigger)       choice=$(menu_trigger | wofi_show -p "Trigger…" -w 300) ;;
+            trigger-reminder)   choice=$(menu_trigger_reminder | wofi_show -p "Reminder…" -w 300) ;;
+            trigger-capture)    choice=$(menu_trigger_capture | wofi_show -p "Capture…" -w 300) ;;
+            trigger-share)      choice=$(menu_trigger_share | wofi_show -p "Share…" -w 300) ;;
+            trigger-toggle)     choice=$(menu_trigger_toggle | wofi_show -p "Toggle…" -w 300) ;;
+            trigger-hardware)   choice=$(menu_trigger_hardware | wofi_show -p "Hardware…" -w 300) ;;
+            style)         choice=$(menu_style | wofi_show -p "Style…" -w 300) ;;
+            style-bar)     choice=$(menu_style_bar | wofi_show -p "Bar Position…" -w 300) ;;
+            setup)         choice=$(menu_setup | wofi_show -p "Setup…" -w 300) ;;
+            setup-terminal) choice=$(menu_setup_terminal | wofi_show -p "Terminal…" -w 300) ;;
+            setup-browser)  choice=$(menu_setup_browser | wofi_show -p "Browser…" -w 300) ;;
+            setup-editor)   choice=$(menu_setup_editor | wofi_show -p "Editor…" -w 300) ;;
+            install)       choice=$(menu_install | wofi_show -p "Install…" -w 300) ;;
+            install-terminal) choice=$(menu_install_terminal | wofi_show -p "Install Terminal…" -w 300) ;;
+            install-editor)   choice=$(menu_install_editor | wofi_show -p "Install Editor…" -w 300) ;;
+            install-browser)  choice=$(menu_install_browser | wofi_show -p "Install Browser…" -w 300) ;;
+            install-dev)      choice=$(menu_install_dev | wofi_show -p "Install Development…" -w 300) ;;
+            install-gaming)   choice=$(menu_install_gaming | wofi_show -p "Install Gaming…" -w 300) ;;
+            install-service)  choice=$(menu_install_service | wofi_show -p "Install Service…" -w 300) ;;
+            remove)        choice=$(menu_remove | wofi_show -p "Remove…" -w 300) ;;
+            update)        choice=$(menu_update | wofi_show -p "Update…" -w 300) ;;
+            about)         choice=$(menu_about | wofi_show -p "About…" -w 300) ;;
+            system)        choice=$(menu_system | wofi_show -p "System…" -w 300) ;;
+            *) return ;;
+        esac
+
+        [ -z "$choice" ] && return
+
+        case "$current" in
+            root)
+                case "$choice" in
+                    *Apps*)         current="apps" ;;
+                    *Learn*)        current="learn" ;;
+                    *Trigger*)      current="trigger" ;;
+                    *Style*)        current="style" ;;
+                    *Setup*)        current="setup" ;;
+                    *Install*)      current="install" ;;
+                    *Remove*)       current="remove" ;;
+                    *Update*)       current="update" ;;
+                    *About*)        current="about" ;;
+                    *System*)       current="system" ;;
+                esac ;;
+            learn)
+                menu_learn_action "$choice"; return ;;
+            trigger)
+                case "$choice" in
+                    *Reminder*)     current="trigger-reminder" ;;
+                    *Capture*)      current="trigger-capture" ;;
+                    *Transcode*)    open_terminal bash -c 'echo "Transcode: ffmpeg-based video conversion"; read'; return ;;
+                    *Share*)        current="trigger-share" ;;
+                    *Toggle*)       current="trigger-toggle" ;;
+                    *Hardware*)     current="trigger-hardware" ;;
+                esac ;;
+            trigger-reminder)
+                open_terminal bash -c "echo 'Reminder: $choice'; read"; return ;;
+            trigger-capture)
+                menu_trigger_capture_action "$choice"; return ;;
+            trigger-share)
+                case "$choice" in
+                    *Clipboard*) wl-copy -l < /dev/null ;;
+                    *File*) open_terminal bash -c 'echo "Share file vialocalsend or warpinator"; read' ;;
+                    *Folder*) open_terminal bash -c 'echo "Share folder via localsend"; read' ;;
+                esac; return ;;
+            trigger-toggle)
+                menu_trigger_toggle_action "$choice"; return ;;
+            trigger-hardware)
+                open_terminal bash -c "echo 'Hardware: $choice'; read"; return ;;
+            style)
+                case "$choice" in
+                    *Theme*) open_terminal bash -c 'echo "Theme selector - install themes with omarchy or kvantum"; read' ;;
+                    *Font*) open_terminal bash -c 'echo "Font settings - edit ~/.config/kitty/kitty.conf"; read' ;;
+                    *Background*) open_terminal bash -c 'echo "Background: replace ~/.config/rocket-d/wallpapers/default.png"; read' ;;
+                    *Bar\ Position*) current="style-bar" ;;
+                    *About*) open_terminal bash -c 'echo "Edit about info in rocket-d config"; read' ;;
+                    *Install*) open_terminal bash -c 'echo "Install themes with kvantum or omarchy-theme-install"; read' ;;
+                esac; return ;;
+            style-bar)
+                case "$choice" in
+                    *Top*) sed -i 's/"position": "bottom"/"position": "top"/' ~/.config/waybar/config.jsonc ;;
+                    *Bottom*) sed -i 's/"position": "top"/"position": "bottom"/' ~/.config/waybar/config.jsonc ;;
+                esac
+                killall -q waybar; sleep 0.5; PATH="$HOME/.local/bin:$PATH" waybar &>/dev/null &
+                return ;;
+            setup)
+                case "$choice" in
+                    *Monitors*) open_terminal bash -c 'echo "Edit monitor config in KWin System Settings"; read' ;;
+                    *Terminal*) current="setup-terminal" ;;
+                    *Editor*) current="setup-editor" ;;
+                    *Browser*) current="setup-browser" ;;
+                    *Security*) open_terminal bash -c 'echo "Security: configure firewall, SSH, etc."; read' ;;
+                    *Config*) open_terminal bash -c 'cd ~/.config/rocket-d && ls -la; read' ;;
+                esac; return ;;
+            setup-terminal|setup-browser|setup-editor)
+                case "$choice" in
+                    *kitty*) launch_app kitty ;;
+                    *alacritty*) launch_app alacritty ;;
+                    *foot*) launch_app foot ;;
+                    *ghostty*) launch_app ghostty ;;
+                    *firefox*) launch_app firefox ;;
+                    *chrome*|*Chrome*) launch_app google-chrome ;;
+                    *chromium*) launch_app chromium ;;
+                    *brave*) launch_app brave-browser ;;
+                    *edge*) launch_app microsoft-edge ;;
+                    *nvim*|*Neovim*) open_terminal nvim ;;
+                    *vim*) open_terminal vim ;;
+                    *code*|*VSCode*) launch_app code ;;
+                    *cursor*) launch_app cursor ;;
+                    *zed*) launch_app zed ;;
+                    *helix*) open_terminal hx ;;
+                    *subl*) launch_app subl ;;
+                    *emacs*) launch_app emacs ;;
+                esac; return ;;
+            install)
+                case "$choice" in
+                    *Package*) current="install-package" ;;
+                    *AUR*) current="install-aur" ;;
+                    *Terminal*) current="install-terminal" ;;
+                    *Editor*) current="install-editor" ;;
+                    *Browser*) current="install-browser" ;;
+                    *Development*) current="install-dev" ;;
+                    *AI*) open_terminal bash -c 'echo "AI tools: ollama, lmstudio (install via yay)"; read' ;;
+                    *Gaming*) current="install-gaming" ;;
+                    *Service*) current="install-service" ;;
+                esac; return ;;
+            install-package|install-aur)
+                menu_install_action "$choice"; return ;;
+            install-terminal|install-editor|install-browser|install-dev|install-gaming|install-service)
+                menu_install_action "$choice"; return ;;
+            remove)
+                menu_remove_action "$choice"; return ;;
+            update)
+                menu_update_action "$choice"; return ;;
+            about)
+                menu_about_action "$choice"; return ;;
+            system)
+                menu_system_action "$choice"; return ;;
+        esac
+    done
+}
+
+navigate

@@ -1,0 +1,100 @@
+#!/bin/bash
+# Rocket D Session Launcher
+# KWin MUST start before any services (waybar, mako, swaybg)
+# because they need the Wayland compositor to be running.
+
+export XDG_SESSION_TYPE=wayland
+export XDG_CURRENT_DESKTOP=RocketD
+export XDG_SESSION_DESKTOP=RocketD
+export QT_QPA_PLATFORM=wayland
+export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+export QT_AUTO_SCREEN_SCALE_FACTOR=1
+export GDK_BACKEND=wayland,x11
+export SDL_VIDEODRIVER=wayland
+export MOZ_ENABLE_WAYLAND=1
+export XCURSOR_SIZE=24
+export XCURSOR_THEME=Adwaita
+export ELECTRON_OZONE_PLATFORM_HINT=auto
+export QT_QPA_PLATFORMTHEME=qt6ct
+export XDG_CONFIG_HOME="$HOME/.config"
+export PATH="$HOME/.local/bin:$PATH"
+
+ROCKET_D_HOME="$HOME/.config/rocket-d"
+
+# Source session environment and apply configs
+if [ -f "$ROCKET_D_HOME/session/rocket-d-start.sh" ]; then
+    source "$ROCKET_D_HOME/session/rocket-d-start.sh"
+fi
+
+# Start KWin Wayland FIRST (compositor must exist before services)
+export KWIN_SCREENSHOT_NO_PERMISSION_CHECKS=1
+kwin_wayland --xwayland --locale1 &
+KWIN_PID=$!
+
+# Wait for Wayland socket (up to 10 seconds)
+TIMEOUT=0
+while [ ! -S "$XDG_RUNTIME_DIR/wayland-0" ] && [ $TIMEOUT -lt 100 ]; do
+    sleep 0.1
+    TIMEOUT=$((TIMEOUT + 1))
+done
+
+# Export WAYLAND_DISPLAY for child processes
+export WAYLAND_DISPLAY=wayland-0
+
+# Wait a bit for KWin DBus interface to be ready
+sleep 1
+
+# Load Rocket Auto-Tile script via DBus
+if [ -d "$HOME/.local/share/kwin/scripts/rocket-autotile" ]; then
+    AUTOTILE_QML="$HOME/.local/share/kwin/scripts/rocket-autotile/contents/ui/main.qml"
+    
+    # Unload first if already loaded
+    qdbus6 org.kde.KWin /Scripting unloadScript "rocket-autotile" 2>/dev/null || true
+    sleep 0.3
+    
+    # Load with correct DBus method
+    qdbus6 org.kde.KWin /Scripting loadDeclarativeScript "$AUTOTILE_QML" "rocket-autotile" 2>/dev/null || true
+    sleep 1
+    
+    # Verify it loaded, retry if needed
+    if ! qdbus6 org.kde.KWin /Scripting isScriptLoaded "rocket-autotile" 2>/dev/null | grep -q "true"; then
+        sleep 2
+        qdbus6 org.kde.KWin /Scripting loadDeclarativeScript "$AUTOTILE_QML" "rocket-autotile" 2>/dev/null || true
+        sleep 1
+    fi
+fi
+
+# Kill existing desktop processes
+killall -q waybar 2>/dev/null || true
+killall -q mako 2>/dev/null || true
+killall -q dunst 2>/dev/null || true
+killall -q swaybg 2>/dev/null || true
+
+# Start services (AFTER KWin is ready)
+if command -v mako &>/dev/null; then
+    mako &
+elif command -v dunst &>/dev/null; then
+    dunst &
+fi
+
+if command -v waybar &>/dev/null; then
+    waybar &
+fi
+
+if command -v swaybg &>/dev/null; then
+    WALLPAPER="$ROCKET_D_HOME/wallpapers/default.png"
+    if [ -f "$WALLPAPER" ]; then
+        swaybg -i "$WALLPAPER" -m fill &
+    fi
+fi
+
+if [ -f /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then
+    /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
+elif [ -f /usr/lib/polkit-kde-authentication-agent-1 ]; then
+    /usr/lib/polkit-kde-authentication-agent-1 &
+fi
+
+/usr/libexec/xdg-desktop-portal -r &>/dev/null &
+
+# Keep session alive (wait for KWin)
+wait $KWIN_PID

@@ -1,0 +1,7 @@
+#!/bin/bash
+for term in kitty alacritty foot wezterm ghostty; do
+    if command -v "$term" &>/dev/null; then
+        exec "$term" "$@"
+    fi
+done
+exec xterm "$@"

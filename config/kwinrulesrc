@@ -1,0 +1,43 @@
+[General]
+count=3
+description=Global transparency for all windows
+ruletypes=*
+
+[1]
+Description=Global Active Window Opacity
+OpacityActive=85
+OpacityActiveRule=2
+OpacityInactive=70
+OpacityInactiveRule=2
+Types=445
+clientmachinematch=0
+clientmachine=localhost
+wmclasscomplete=false
+wmclassmatch=0
+windowtypes=445
+
+[2]
+Description=Exclude Terminal Emulators
+OpacityActive=100
+OpacityActiveRule=2
+OpacityInactive=100
+OpacityInactiveRule=2
+Types=445
+clientmachinematch=0
+clientmachine=localhost
+wmclasscomplete=false
+wmclassmatch=3
+wmclass=Alacritty|kitty|foot|wezterm|yakuake|tmux|dolphin|nautilus|thunar|pcmanfm
+
+[3]
+Description=Exclude Panel and Dock
+OpacityActive=100
+OpacityActiveRule=2
+OpacityInactive=100
+OpacityInactiveRule=2
+Types=445
+clientmachinematch=0
+clientmachine=localhost
+wmclasscomplete=false
+wmclassmatch=3
+wmclass=waybar|plasmashell|kded|org.kde.*
