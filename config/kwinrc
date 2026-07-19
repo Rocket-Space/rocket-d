@@ -66,11 +66,12 @@ InputMethod=/usr/lib/qt6/qml/org.kde.plasma.keyboardlayout/qml/empty.qml
 
 [Windows]
 BorderSize=2
-BorderlessMaximizedWindows=false
+BorderlessMaximizedWindows=true
 CloseOnDoubleClickOnMenu=false
 Focus stealing prevention=1
 Focus stealing prevention force=0
 Frame=2
+Placement=6
 Separate screen focus=false
 TitleAlignment=Left
 UnredirectFullscreen=false
