@@ -256,13 +256,13 @@ int main(void) {
                     case KEY_SPACE:
                         if (alt_down)
                             run_cmd("rocket-d-menu");
+                        else
+                            run_cmd("wofi --show drun -config $HOME/.config/wofi/config -style $HOME/.config/wofi/style.css");
                         break;
                     case KEY_ENTER:
                         run_cmd("kitty");
                         break;
-                    case KEY_W:
-                        run_cmd("qdbus6 org.kde.KWin /KWin org.kde.KWin.closeActiveWindow 2>/dev/null || xdotool getactivewindow windowclose 2>/dev/null");
-                        break;
+                    /* Meta+W handled natively by KWin via kglobalshortcutsrc */
                 }
             }
 

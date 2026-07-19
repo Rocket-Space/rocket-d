@@ -176,7 +176,8 @@ install_packages_arch() {
         "polkit-gnome" \
         "xdg-desktop-portal" \
         "xdg-desktop-portal-kde" \
-        "xdg-desktop-portal-wlr"
+        "xdg-desktop-portal-wlr" \
+        "wtype"
 
     # Group 4: Fonts
     install_pkg_group "Fonts" \
