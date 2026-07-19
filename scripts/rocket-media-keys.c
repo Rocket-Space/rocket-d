@@ -249,6 +249,18 @@ int main(void) {
             /* If Meta is down and another key is pressed, it's a combo */
             if (meta_down && value == 1) {
                 meta_combo = 1;
+                /* Handle Meta+key combos */
+                switch (code) {
+                    case KEY_SPACE:
+                        run_cmd("wofi --show drun -config $HOME/.config/wofi/config -style $HOME/.config/wofi/style.css");
+                        break;
+                    case KEY_ENTER:
+                        run_cmd("kitty");
+                        break;
+                    case KEY_W:
+                        run_cmd("qdbus6 org.kde.KWin /KWin org.kde.KWin.closeActiveWindow 2>/dev/null || xdotool getactivewindow windowclose 2>/dev/null");
+                        break;
+                }
             }
 
             /* Media key handling with cooldown */
