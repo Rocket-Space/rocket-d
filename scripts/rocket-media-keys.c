@@ -8,7 +8,7 @@
 #include <time.h>
 #include <linux/input.h>
 
-#define MAX_DEVICES 16
+#define MAX_DEVICES 32
 #define COOLDOWN_MS 150
 
 static volatile int running = 1;
@@ -23,7 +23,30 @@ static long long time_ms(void) {
     return (long long)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
 
-static int open_input_devices(int *fds, int max) {
+static int is_media_key(int code) {
+    switch (code) {
+        case KEY_VOLUMEUP:
+        case KEY_VOLUMEDOWN:
+        case KEY_MUTE:
+        case KEY_BRIGHTNESSUP:
+        case KEY_BRIGHTNESSDOWN:
+        case KEY_PLAYPAUSE:
+        case KEY_NEXTSONG:
+        case KEY_PREVIOUSSONG:
+        case KEY_STOPCD:
+        case KEY_MICMUTE:
+        case KEY_MEDIA:
+            return 1;
+    }
+    return 0;
+}
+
+typedef struct {
+    int fd;
+    int grab; /* 1=grabbed exclusively, 0=monitor only */
+} DeviceEntry;
+
+static int open_input_devices(DeviceEntry *devs, int max) {
     char path[256], name[256];
     int count = 0;
     DIR *dir = opendir("/dev/input");
@@ -37,7 +60,6 @@ static int open_input_devices(int *fds, int max) {
         int fd = open(path, O_RDONLY | O_NONBLOCK);
         if (fd < 0) continue;
 
-        /* Get device name */
         name[0] = '\0';
         ioctl(fd, EVIOCGNAME(sizeof(name)), name);
 
@@ -51,19 +73,17 @@ static int open_input_devices(int *fds, int max) {
             continue;
         }
 
-        /* Check if this device has media/brightness keys */
         unsigned long keybits[KEY_MAX / (sizeof(unsigned long) * 8) + 1] = {0};
         if (ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(keybits)), keybits) < 0) {
             close(fd);
             continue;
         }
 
+        int has_media = 0;
         int media_keys[] = {KEY_VOLUMEUP, KEY_VOLUMEDOWN, KEY_MUTE,
                            KEY_BRIGHTNESSUP, KEY_BRIGHTNESSDOWN,
                            KEY_PLAYPAUSE, KEY_NEXTSONG, KEY_PREVIOUSSONG,
-                           KEY_MICMUTE, KEY_MEDIA};
-
-        int has_media = 0;
+                           KEY_STOPCD, KEY_MICMUTE, KEY_MEDIA};
         for (int i = 0; i < (int)(sizeof(media_keys)/sizeof(media_keys[0])); i++) {
             int k = media_keys[i];
             if (keybits[k / (sizeof(unsigned long) * 8)] & (1UL << (k % (sizeof(unsigned long) * 8)))) {
@@ -77,7 +97,7 @@ static int open_input_devices(int *fds, int max) {
             continue;
         }
 
-        /* Skip full keyboards - only grab dedicated media/hotkey devices */
+        /* Check if this is a full keyboard (has letter keys) */
         int has_letters = 0;
         for (int k = KEY_A; k <= KEY_Z; k++) {
             if (keybits[k / (sizeof(unsigned long) * 8)] & (1UL << (k % (sizeof(unsigned long) * 8)))) {
@@ -85,16 +105,19 @@ static int open_input_devices(int *fds, int max) {
                 break;
             }
         }
-        if (has_letters) {
-            fprintf(stderr, "rocket-media-keys: skipping keyboard: %s (%s)\n", name, path);
-            close(fd);
-            continue;
-        }
 
-        /* Grab the device exclusively */
-        ioctl(fd, EVIOCGRAB, 1);
-        fds[count++] = fd;
-        fprintf(stderr, "rocket-media-keys: grabbed %s [%s]\n", path, name);
+        devs[count].fd = fd;
+        if (has_letters) {
+            /* Keyboard: monitor only, don't grab */
+            devs[count].grab = 0;
+            fprintf(stderr, "rocket-media-keys: monitoring keyboard: %s [%s]\n", path, name);
+        } else {
+            /* Dedicated media device: grab exclusively */
+            ioctl(fd, EVIOCGRAB, 1);
+            devs[count].grab = 1;
+            fprintf(stderr, "rocket-media-keys: grabbed %s [%s]\n", path, name);
+        }
+        count++;
     }
     closedir(dir);
     return count;
@@ -132,6 +155,7 @@ static void handle_key(int code, int value) {
             run_cmd("pamixer --source @DEFAULT_SOURCE@ -t");
             break;
         case KEY_PLAYPAUSE:
+        case KEY_STOPCD:
             run_cmd("playerctl play-pause");
             break;
         case KEY_NEXTSONG:
@@ -147,11 +171,11 @@ int main(void) {
     signal(SIGTERM, handle_signal);
     signal(SIGINT, handle_signal);
 
-    int fds[MAX_DEVICES];
-    int nfds = open_input_devices(fds, MAX_DEVICES);
+    DeviceEntry devs[MAX_DEVICES];
+    int nfds = open_input_devices(devs, MAX_DEVICES);
 
     if (nfds == 0) {
-        fprintf(stderr, "rocket-media-keys: no dedicated media key devices found\n");
+        fprintf(stderr, "rocket-media-keys: no input devices with media keys found\n");
         return 1;
     }
 
@@ -165,8 +189,8 @@ int main(void) {
         int maxfd = 0;
 
         for (int i = 0; i < nfds; i++) {
-            FD_SET(fds[i], &rfds);
-            if (fds[i] > maxfd) maxfd = fds[i];
+            FD_SET(devs[i].fd, &rfds);
+            if (devs[i].fd > maxfd) maxfd = devs[i].fd;
         }
 
         struct timeval tv = {0, 100000};
@@ -174,13 +198,17 @@ int main(void) {
         if (ret < 0) break;
 
         for (int i = 0; i < nfds; i++) {
-            if (!FD_ISSET(fds[i], &rfds)) continue;
+            if (!FD_ISSET(devs[i].fd, &rfds)) continue;
 
             struct input_event ev;
-            ssize_t n = read(fds[i], &ev, sizeof(ev));
+            ssize_t n = read(devs[i].fd, &ev, sizeof(ev));
             if (n != sizeof(ev)) continue;
 
             if (ev.type == EV_KEY && ev.code <= KEY_MAX) {
+                /* For non-grabbed keyboards, only process media keys */
+                if (!devs[i].grab && !is_media_key(ev.code))
+                    continue;
+
                 long long now = time_ms();
                 if (now - last_time[ev.code] >= COOLDOWN_MS) {
                     last_time[ev.code] = now;
@@ -191,8 +219,9 @@ int main(void) {
     }
 
     for (int i = 0; i < nfds; i++) {
-        ioctl(fds[i], EVIOCGRAB, 0);
-        close(fds[i]);
+        if (devs[i].grab)
+            ioctl(devs[i].fd, EVIOCGRAB, 0);
+        close(devs[i].fd);
     }
 
     return 0;
