@@ -479,25 +479,24 @@ GREETD
 install_autotile() {
     echo -e "${GREEN}[3.7/7] Installing Rocket Auto-Tile (dwindle tiling)...${NC}"
 
-    # Install the pre-built KWin script
     AUTOTILE_DIR="$ROCKET_D_SOURCE/scripts/rocket-autotile"
     if [ ! -d "$AUTOTILE_DIR" ]; then
         echo -e "  ${YELLOW}Rocket Auto-Tile source not found. Tiling will not be available.${NC}"
         return 1
     fi
 
-    # Package as kwinscript
     AUTOTILE_PKG="/tmp/rocket-autotile.kwinscript"
-    cd /tmp && zip -rq "$AUTOTILE_PKG" -j "$AUTOTILE_DIR/metadata.json" "$AUTOTILE_DIR/contents/" 2>/dev/null || \
-    (cd "$AUTOTILE_DIR" && zip -rq "$AUTOTILE_PKG" .) || true
+    rm -f "$AUTOTILE_PKG"
 
-    # Install with kpackagetool6
+    (cd "$AUTOTILE_DIR" && zip -rq "$AUTOTILE_PKG" .) 2>/dev/null || true
+
     if [ -f "$AUTOTILE_PKG" ]; then
         kpackagetool6 -t KWin/Script -i "$AUTOTILE_PKG" 2>/dev/null || \
         kpackagetool6 -t KWin/Script -u "$AUTOTILE_PKG" 2>/dev/null || true
         rm -f "$AUTOTILE_PKG"
-    else
-        # Fallback: copy directly
+    fi
+
+    if [ ! -d "$HOME/.local/share/kwin/scripts/rocket-autotile" ]; then
         mkdir -p "$HOME/.local/share/kwin/scripts/rocket-autotile"
         cp -r "$AUTOTILE_DIR/"* "$HOME/.local/share/kwin/scripts/rocket-autotile/"
     fi
