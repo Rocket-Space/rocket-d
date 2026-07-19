@@ -25,17 +25,10 @@ static long long time_ms(void) {
 
 static int is_media_key(int code) {
     switch (code) {
-        case KEY_VOLUMEUP:
-        case KEY_VOLUMEDOWN:
-        case KEY_MUTE:
-        case KEY_BRIGHTNESSUP:
-        case KEY_BRIGHTNESSDOWN:
-        case KEY_PLAYPAUSE:
-        case KEY_NEXTSONG:
-        case KEY_PREVIOUSSONG:
-        case KEY_STOPCD:
-        case KEY_MICMUTE:
-        case KEY_MEDIA:
+        case KEY_VOLUMEUP: case KEY_VOLUMEDOWN: case KEY_MUTE:
+        case KEY_BRIGHTNESSUP: case KEY_BRIGHTNESSDOWN:
+        case KEY_PLAYPAUSE: case KEY_NEXTSONG: case KEY_PREVIOUSSONG:
+        case KEY_STOPCD: case KEY_MICMUTE: case KEY_MEDIA:
             return 1;
     }
     return 0;
@@ -45,8 +38,14 @@ static int is_meta_key(int code) {
     return code == KEY_LEFTMETA || code == KEY_RIGHTMETA;
 }
 
-static int is_functional_key(int code) {
-    return code >= KEY_F1 && code <= KEY_F24;
+static int is_shift_key(int code) {
+    return code == KEY_LEFTSHIFT || code == KEY_RIGHTSHIFT;
+}
+
+static int is_number_key(int code, int *num) {
+    if (code >= KEY_1 && code <= KEY_9) { *num = code - KEY_1 + 1; return 1; }
+    if (code == KEY_0) { *num = 10; return 1; }
+    return 0;
 }
 
 typedef struct {
@@ -73,18 +72,15 @@ static int open_input_devices(DeviceEntry *devs, int max) {
 
         unsigned long bits = 0;
         if (ioctl(fd, EVIOCGBIT(0, sizeof(bits)), &bits) < 0) {
-            close(fd);
-            continue;
+            close(fd); continue;
         }
         if (!(bits & (1 << EV_KEY))) {
-            close(fd);
-            continue;
+            close(fd); continue;
         }
 
         unsigned long keybits[KEY_MAX / (sizeof(unsigned long) * 8) + 1] = {0};
         if (ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(keybits)), keybits) < 0) {
-            close(fd);
-            continue;
+            close(fd); continue;
         }
 
         int media_keys[] = {KEY_VOLUMEUP, KEY_VOLUMEDOWN, KEY_MUTE,
@@ -95,26 +91,21 @@ static int open_input_devices(DeviceEntry *devs, int max) {
         for (int i = 0; i < (int)(sizeof(media_keys)/sizeof(media_keys[0])); i++) {
             int k = media_keys[i];
             if (keybits[k / (sizeof(unsigned long) * 8)] & (1UL << (k % (sizeof(unsigned long) * 8)))) {
-                has_media = 1;
-                break;
+                has_media = 1; break;
             }
         }
 
-        /* Also accept devices that have Meta key (for launcher binding) */
-        int has_meta = 0;
-        if (keybits[KEY_LEFTMETA / (sizeof(unsigned long) * 8)] & (1UL << (KEY_LEFTMETA % (sizeof(unsigned long) * 8))))
-            has_meta = 1;
+        int has_meta = !!(keybits[KEY_LEFTMETA / (sizeof(unsigned long) * 8)] &
+                          (1UL << (KEY_LEFTMETA % (sizeof(unsigned long) * 8))));
 
         if (!has_media && !has_meta) {
-            close(fd);
-            continue;
+            close(fd); continue;
         }
 
         int has_letters = 0;
         for (int k = KEY_A; k <= KEY_Z; k++) {
             if (keybits[k / (sizeof(unsigned long) * 8)] & (1UL << (k % (sizeof(unsigned long) * 8)))) {
-                has_letters = 1;
-                break;
+                has_letters = 1; break;
             }
         }
 
@@ -141,39 +132,18 @@ static void run_cmd(const char *cmd) {
     }
 }
 
-static void handle_key(int code, int value) {
+static void handle_media_key(int code, int value) {
     if (value != 1) return;
-
     switch (code) {
-        case KEY_BRIGHTNESSUP:
-            run_cmd("brightnessctl s 5%+");
-            break;
-        case KEY_BRIGHTNESSDOWN:
-            run_cmd("brightnessctl s 5%-");
-            break;
-        case KEY_VOLUMEUP:
-            run_cmd("pamixer -i 5");
-            break;
-        case KEY_VOLUMEDOWN:
-            run_cmd("pamixer -d 5");
-            break;
-        case KEY_MUTE:
-        case KEY_MEDIA:
-            run_cmd("pamixer -t");
-            break;
-        case KEY_MICMUTE:
-            run_cmd("pamixer --source @DEFAULT_SOURCE@ -t");
-            break;
-        case KEY_PLAYPAUSE:
-        case KEY_STOPCD:
-            run_cmd("playerctl play-pause");
-            break;
-        case KEY_NEXTSONG:
-            run_cmd("playerctl next");
-            break;
-        case KEY_PREVIOUSSONG:
-            run_cmd("playerctl previous");
-            break;
+        case KEY_BRIGHTNESSUP:    run_cmd("brightnessctl s 5%+"); break;
+        case KEY_BRIGHTNESSDOWN:  run_cmd("brightnessctl s 5%-"); break;
+        case KEY_VOLUMEUP:        run_cmd("pamixer -i 5"); break;
+        case KEY_VOLUMEDOWN:      run_cmd("pamixer -d 5"); break;
+        case KEY_MUTE: case KEY_MEDIA: run_cmd("pamixer -t"); break;
+        case KEY_MICMUTE:         run_cmd("pamixer --source @DEFAULT_SOURCE@ -t"); break;
+        case KEY_PLAYPAUSE: case KEY_STOPCD: run_cmd("playerctl play-pause"); break;
+        case KEY_NEXTSONG:        run_cmd("playerctl next"); break;
+        case KEY_PREVIOUSSONG:    run_cmd("playerctl previous"); break;
     }
 }
 
@@ -192,11 +162,8 @@ int main(void) {
     fprintf(stderr, "rocket-media-keys: monitoring %d device(s)\n", nfds);
 
     long long last_time[KEY_MAX + 1] = {0};
-
-    /* Meta/Alt key state for combos */
-    int meta_down = 0;
-    int meta_combo = 0;
-    int alt_down = 0;
+    int meta_down = 0, meta_combo = 0;
+    int alt_down = 0, shift_down = 0;
 
     while (running) {
         fd_set rfds;
@@ -221,37 +188,39 @@ int main(void) {
 
             if (ev.type != EV_KEY || ev.code > KEY_MAX) continue;
 
-            /* Non-grabbed keyboards: process media keys + meta + alt
-               + ANY key when Meta is held (for combos like Meta+Space) */
+            /* Non-grabbed keyboards: pass media keys + meta + alt + shift
+               + ANY key when Meta is held (for combos) */
             if (!devs[i].grab && !is_media_key(ev.code) && !is_meta_key(ev.code)
                 && ev.code != KEY_LEFTALT && ev.code != KEY_RIGHTALT
+                && ev.code != KEY_LEFTSHIFT && ev.code != KEY_RIGHTSHIFT
                 && !meta_down)
                 continue;
 
             int code = ev.code;
-            int value = ev.value; /* 1=press, 0=release, 2=repeat */
+            int value = ev.value;
 
             /* Meta key tracking */
             if (is_meta_key(code)) {
-                if (value == 1) {
-                    meta_down = 1;
-                    meta_combo = 0;
-                } else if (value == 0 && meta_down) {
-                    meta_down = 0;
-                    meta_combo = 0;
-                }
+                if (value == 1) { meta_down = 1; meta_combo = 0; }
+                else if (value == 0) { meta_down = 0; meta_combo = 0; }
                 continue;
             }
 
-            /* Track Alt key for Meta+Alt combos */
-            if (code == KEY_LEFTALT || code == KEY_RIGHTALT) {
-                if (value == 1) alt_down = 1;
-                else if (value == 0) alt_down = 0;
+            /* Track Shift */
+            if (is_shift_key(code)) {
+                shift_down = (value > 0) ? 1 : 0;
             }
 
-            /* If Meta is down and another key is pressed, it's a combo */
+            /* Track Alt */
+            if (code == KEY_LEFTALT || code == KEY_RIGHTALT) {
+                alt_down = (value > 0) ? 1 : 0;
+            }
+
+            /* Meta+key combos */
             if (meta_down && value == 1) {
                 meta_combo = 1;
+                int num;
+
                 switch (code) {
                     case KEY_SPACE:
                         if (alt_down)
@@ -262,7 +231,28 @@ int main(void) {
                     case KEY_ENTER:
                         run_cmd("kitty");
                         break;
-                    /* Meta+W handled natively by KWin via kglobalshortcutsrc */
+                    case KEY_W:
+                        run_cmd("qdbus6 org.kde.KWin /KWin org.kde.KWin.killWindow");
+                        break;
+                    default:
+                        /* Meta+Shift+number: move window to desktop */
+                        if (shift_down && is_number_key(code, &num)) {
+                            char cmd[128];
+                            snprintf(cmd, sizeof(cmd),
+                                "qdbus6 org.kde.kglobalaccel /component/kwin "
+                                "org.kde.kglobalaccel.Component.invokeShortcut "
+                                "\"Window to Desktop %d\"", num);
+                            run_cmd(cmd);
+                        }
+                        /* Meta+number: switch to desktop */
+                        else if (!shift_down && is_number_key(code, &num)) {
+                            char cmd[128];
+                            snprintf(cmd, sizeof(cmd),
+                                "qdbus6 org.kde.KWin /KWin "
+                                "org.kde.KWin.setCurrentDesktop %d", num);
+                            run_cmd(cmd);
+                        }
+                        break;
                 }
             }
 
@@ -271,7 +261,7 @@ int main(void) {
                 long long now = time_ms();
                 if (now - last_time[code] >= COOLDOWN_MS) {
                     last_time[code] = now;
-                    handle_key(code, value);
+                    handle_media_key(code, value);
                 }
             }
         }
