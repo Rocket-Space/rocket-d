@@ -1,0 +1,18 @@
+#!/bin/bash
+# Waybar workspace dots module for KWin
+# Shows desktops as dots, highlights active one
+
+CURRENT=$(qdbus6 org.kde.KWin /KWin org.kde.KWin.currentDesktop 2>/dev/null || echo 1)
+TOTAL=$(qdbus6 org.kde.KWin /VirtualDesktopManager org.kde.KWin.VirtualDesktopManager.count 2>/dev/null || echo 4)
+
+# Build dots
+DOTS=""
+for i in $(seq 1 "$TOTAL"); do
+    if [ "$i" -eq "$CURRENT" ]; then
+        DOTS="${DOTS}<span color='#64d282' font_size='14pt'>●</span>"
+    else
+        DOTS="${DOTS}<span color='#555555' font_size='10pt'>●</span>"
+    fi
+done
+
+echo "{\"text\": \"${DOTS}\", \"tooltip\": \"Desktop ${CURRENT}/${TOTAL}\"}"

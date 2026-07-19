@@ -29,6 +29,13 @@ window#waybar {
     background-color: rgba(100, 210, 130, 0.2);
 }
 
+#custom-workspaces {
+    color: #888888;
+    font-size: 11px;
+    padding: 0 8px;
+    margin: 4px 0 4px 2px;
+}
+
 /* ===== CENTER MODULES ===== */
 
 #clock {
