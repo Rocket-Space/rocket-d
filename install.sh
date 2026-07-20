@@ -173,11 +173,14 @@ install_packages_arch() {
         "kitty" \
         "swaybg" \
         "btop" \
+        "thunar" \
+        "tumbler" \
         "polkit-gnome" \
         "xdg-desktop-portal" \
         "xdg-desktop-portal-kde" \
         "xdg-desktop-portal-wlr" \
-        "wtype"
+        "wtype" \
+        "wl-clipboard"
 
     # Group 4: Fonts
     install_pkg_group "Fonts" \
