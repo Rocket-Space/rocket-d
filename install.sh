@@ -360,6 +360,10 @@ install_configs() {
     mkdir -p "$ROCKET_D_HOME/config/Thunar"
     cp "$ROCKET_D_SOURCE/config/Thunar/uca.xml" "$ROCKET_D_HOME/config/Thunar/"
 
+    echo -e "  Installing Thunar bookmarks (sidebar places)..."
+    mkdir -p "$ROCKET_D_HOME/config/gtk-3.0"
+    cp "$ROCKET_D_SOURCE/config/gtk-3.0/bookmarks" "$ROCKET_D_HOME/config/gtk-3.0/"
+
     echo -e "  Installing XFCE4 helpers (terminal default)..."
     mkdir -p "$ROCKET_D_HOME/config/xfce4"
     cp "$ROCKET_D_SOURCE/config/xfce4/helpers.rc" "$ROCKET_D_HOME/config/xfce4/"
@@ -439,6 +443,13 @@ install_configs() {
     # Thunar (terminal + context menu actions)
     mkdir -p "$HOME/.config/Thunar"
     cp "$ROCKET_D_HOME/config/Thunar/uca.xml" "$HOME/.config/Thunar/"
+
+    # Thunar bookmarks (sidebar places)
+    mkdir -p "$HOME/.config/gtk-3.0"
+    cp "$ROCKET_D_HOME/config/gtk-3.0/bookmarks" "$HOME/.config/gtk-3.0/"
+
+    # Create user directories for Thunar places
+    mkdir -p "$HOME/Videos" "$HOME/Música" "$HOME/Documentos" "$HOME/Documents" "$HOME/Games"
 
     # XFCE4 helpers (sets kitty as default terminal for exo-open)
     mkdir -p "$HOME/.config/xfce4"
