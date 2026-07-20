@@ -235,6 +235,12 @@ int main(void) {
                     case KEY_B:
                         run_cmd("if pgrep -x waybar > /dev/null; then killall waybar; else waybar &>/dev/null & fi");
                         break;
+                    case KEY_K:
+                        if (alt_down)
+                            run_cmd("$HOME/redroid-stop.sh &>/dev/null &");
+                        else
+                            run_cmd("$HOME/redroid-start.sh --scrcpy &>/dev/null &");
+                        break;
                     default:
                         if (shift_down && is_number_key(code, &num)) {
                             char cmd[128];
