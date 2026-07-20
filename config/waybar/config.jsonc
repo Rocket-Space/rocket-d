@@ -15,10 +15,8 @@
     "clock"
   ],
   "modules-right": [
-    "tray",
     "network",
     "pulseaudio",
-    "custom/updates",
     "cpu",
     "memory",
     "custom/power-profile",
@@ -89,14 +87,6 @@
     "on-click": "pavucontrol",
     "tooltip-format": "Volume: {volume}%"
   },
-  "custom/updates": {
-    "exec": "/home/rocket/rocket-d/scripts/waybar-updates",
-    "return-type": "json",
-    "format": "{text}",
-    "tooltip": true,
-    "interval": 60,
-    "on-click": "kitty -e cachy-update"
-  },
   "custom/power-profile": {
     "exec": "/home/rocket/rocket-d/scripts/waybar-power-profile",
     "return-type": "json",
@@ -142,10 +132,5 @@
     "interval": 5,
     "tooltip-format": "{capacity}% - {timeTo}",
     "on-click": "rocket-d-terminal rocket-d-battery-info"
-  },
-  "tray": {
-    "icon-size": 16,
-    "spacing": 8,
-    "show-passive-items": true
   }
 }
