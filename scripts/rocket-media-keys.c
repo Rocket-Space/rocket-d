@@ -7,7 +7,6 @@
 #include <signal.h>
 #include <time.h>
 #include <linux/input.h>
-#include <sys/wait.h>
 
 #define MAX_DEVICES 32
 #define COOLDOWN_MS 150
@@ -15,6 +14,7 @@
 static volatile int running = 1;
 
 static void handle_signal(int sig) {
+    (void)sig;
     running = 0;
 }
 
@@ -51,10 +51,9 @@ static int is_number_key(int code, int *num) {
 
 typedef struct {
     int fd;
-    int grab;
 } DeviceEntry;
 
-static int open_input_devices(DeviceEntry *devs, int max) {
+static int open_keyboards(DeviceEntry *devs, int max) {
     char path[256], name[256];
     int count = 0;
     DIR *dir = opendir("/dev/input");
@@ -84,25 +83,6 @@ static int open_input_devices(DeviceEntry *devs, int max) {
             close(fd); continue;
         }
 
-        int media_keys[] = {KEY_VOLUMEUP, KEY_VOLUMEDOWN, KEY_MUTE,
-                           KEY_BRIGHTNESSUP, KEY_BRIGHTNESSDOWN,
-                           KEY_PLAYPAUSE, KEY_NEXTSONG, KEY_PREVIOUSSONG,
-                           KEY_STOPCD, KEY_MICMUTE, KEY_MEDIA};
-        int has_media = 0;
-        for (int i = 0; i < (int)(sizeof(media_keys)/sizeof(media_keys[0])); i++) {
-            int k = media_keys[i];
-            if (keybits[k / (sizeof(unsigned long) * 8)] & (1UL << (k % (sizeof(unsigned long) * 8)))) {
-                has_media = 1; break;
-            }
-        }
-
-        int has_meta = !!(keybits[KEY_LEFTMETA / (sizeof(unsigned long) * 8)] &
-                          (1UL << (KEY_LEFTMETA % (sizeof(unsigned long) * 8))));
-
-        if (!has_media && !has_meta) {
-            close(fd); continue;
-        }
-
         int has_letters = 0;
         for (int k = KEY_A; k <= KEY_Z; k++) {
             if (keybits[k / (sizeof(unsigned long) * 8)] & (1UL << (k % (sizeof(unsigned long) * 8)))) {
@@ -110,15 +90,12 @@ static int open_input_devices(DeviceEntry *devs, int max) {
             }
         }
 
-        devs[count].fd = fd;
-        if (has_letters) {
-            devs[count].grab = 0;
-            fprintf(stderr, "rocket-media-keys: monitoring keyboard: %s [%s]\n", path, name);
-        } else {
-            ioctl(fd, EVIOCGRAB, 1);
-            devs[count].grab = 1;
-            fprintf(stderr, "rocket-media-keys: grabbed %s [%s]\n", path, name);
+        if (!has_letters) {
+            close(fd); continue;
         }
+
+        devs[count].fd = fd;
+        fprintf(stderr, "rocket-media-keys: monitoring keyboard: %s [%s]\n", path, name);
         count++;
     }
     closedir(dir);
@@ -133,8 +110,7 @@ static void run_cmd(const char *cmd) {
     }
 }
 
-static void handle_media_key(int code, int value) {
-    if (value != 1) return;
+static void handle_media_key(int code) {
     switch (code) {
         case KEY_BRIGHTNESSUP:    run_cmd("brightnessctl s 5%+"); break;
         case KEY_BRIGHTNESSDOWN:  run_cmd("brightnessctl s 5%-"); break;
@@ -153,18 +129,19 @@ int main(void) {
     signal(SIGINT, handle_signal);
 
     DeviceEntry devs[MAX_DEVICES];
-    int nfds = open_input_devices(devs, MAX_DEVICES);
+    int nfds = open_keyboards(devs, MAX_DEVICES);
 
     if (nfds == 0) {
-        fprintf(stderr, "rocket-media-keys: no input devices with media keys found\n");
+        fprintf(stderr, "rocket-media-keys: no keyboards found\n");
         return 1;
     }
 
-    fprintf(stderr, "rocket-media-keys: monitoring %d device(s)\n", nfds);
+    fprintf(stderr, "rocket-media-keys: monitoring %d keyboard(s)\n", nfds);
 
     long long last_time[KEY_MAX + 1] = {0};
-    int meta_down = 0, meta_combo = 0;
-    int alt_down = 0, shift_down = 0;
+    int meta_down = 0;
+    int alt_down = 0;
+    int shift_down = 0;
 
     while (running) {
         fd_set rfds;
@@ -189,9 +166,7 @@ int main(void) {
 
             if (ev.type != EV_KEY || ev.code > KEY_MAX) continue;
 
-            /* Non-grabbed keyboards: pass media keys + meta + alt + shift
-               + ANY key when Meta is held (for combos) */
-            if (!devs[i].grab && !is_media_key(ev.code) && !is_meta_key(ev.code)
+            if (!is_media_key(ev.code) && !is_meta_key(ev.code)
                 && ev.code != KEY_LEFTALT && ev.code != KEY_RIGHTALT
                 && ev.code != KEY_LEFTSHIFT && ev.code != KEY_RIGHTSHIFT
                 && !meta_down)
@@ -200,26 +175,21 @@ int main(void) {
             int code = ev.code;
             int value = ev.value;
 
-            /* Meta key tracking */
             if (is_meta_key(code)) {
-                if (value == 1) { meta_down = 1; meta_combo = 0; }
-                else if (value == 0) { meta_down = 0; meta_combo = 0; }
+                if (value == 1) { meta_down = 1; }
+                else if (value == 0) { meta_down = 0; }
                 continue;
             }
 
-            /* Track Shift */
             if (is_shift_key(code)) {
                 shift_down = (value > 0) ? 1 : 0;
             }
 
-            /* Track Alt */
             if (code == KEY_LEFTALT || code == KEY_RIGHTALT) {
                 alt_down = (value > 0) ? 1 : 0;
             }
 
-            /* Meta+key combos */
             if (meta_down && value == 1) {
-                meta_combo = 1;
                 int num;
 
                 switch (code) {
@@ -232,9 +202,7 @@ int main(void) {
                     case KEY_ENTER:
                         run_cmd("kitty");
                         break;
-                    
                     default:
-                        /* Meta+Shift+number: move window to desktop */
                         if (shift_down && is_number_key(code, &num)) {
                             char cmd[128];
                             snprintf(cmd, sizeof(cmd),
@@ -243,7 +211,6 @@ int main(void) {
                                 "\"Window to Desktop %d\"", num);
                             run_cmd(cmd);
                         }
-                        /* Meta+number: switch to desktop */
                         else if (!shift_down && is_number_key(code, &num)) {
                             char cmd[128];
                             snprintf(cmd, sizeof(cmd),
@@ -255,20 +222,17 @@ int main(void) {
                 }
             }
 
-            /* Media key handling with cooldown */
-            if (is_media_key(code)) {
+            if (is_media_key(code) && (value == 1 || value == 2)) {
                 long long now = time_ms();
                 if (now - last_time[code] >= COOLDOWN_MS) {
                     last_time[code] = now;
-                    handle_media_key(code, value);
+                    handle_media_key(code);
                 }
             }
         }
     }
 
     for (int i = 0; i < nfds; i++) {
-        if (devs[i].grab)
-            ioctl(devs[i].fd, EVIOCGRAB, 0);
         close(devs[i].fd);
     }
 

@@ -93,6 +93,7 @@
     "return-type": "json",
     "format": "󰖑 {percentage}%",
     "tooltip-format": "Brightness: {percentage}%",
+    "interval": 1,
     "on-scroll-up": "brightnessctl s 5%+",
     "on-scroll-down": "brightnessctl s 5%-",
     "on-click": "brightnessctl s 100%"
