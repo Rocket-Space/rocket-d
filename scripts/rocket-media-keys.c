@@ -9,7 +9,7 @@
 #include <linux/input.h>
 
 #define MAX_DEVICES 32
-#define COOLDOWN_MS 150
+#define COOLDOWN_MS 100
 
 static volatile int running = 1;
 
@@ -51,9 +51,10 @@ static int is_number_key(int code, int *num) {
 
 typedef struct {
     int fd;
+    int is_keyboard;
 } DeviceEntry;
 
-static int open_keyboards(DeviceEntry *devs, int max) {
+static int open_devices(DeviceEntry *devs, int max) {
     char path[256], name[256];
     int count = 0;
     DIR *dir = opendir("/dev/input");
@@ -90,12 +91,27 @@ static int open_keyboards(DeviceEntry *devs, int max) {
             }
         }
 
-        if (!has_letters) {
+        int has_media = 0;
+        int media_keys[] = {KEY_VOLUMEUP, KEY_VOLUMEDOWN, KEY_MUTE,
+                           KEY_BRIGHTNESSUP, KEY_BRIGHTNESSDOWN,
+                           KEY_PLAYPAUSE, KEY_NEXTSONG, KEY_PREVIOUSSONG,
+                           KEY_STOPCD, KEY_MICMUTE, KEY_MEDIA};
+        for (int i = 0; i < (int)(sizeof(media_keys)/sizeof(media_keys[0])); i++) {
+            int k = media_keys[i];
+            if (keybits[k / (sizeof(unsigned long) * 8)] & (1UL << (k % (sizeof(unsigned long) * 8)))) {
+                has_media = 1; break;
+            }
+        }
+
+        if (!has_letters && !has_media) {
             close(fd); continue;
         }
 
         devs[count].fd = fd;
-        fprintf(stderr, "rocket-media-keys: monitoring keyboard: %s [%s]\n", path, name);
+        devs[count].is_keyboard = has_letters;
+        fprintf(stderr, "rocket-media-keys: %s %s [%s]\n",
+                has_letters ? "monitoring keyboard:" : "monitoring media device:",
+                path, name);
         count++;
     }
     closedir(dir);
@@ -112,11 +128,11 @@ static void run_cmd(const char *cmd) {
 
 static void handle_media_key(int code) {
     switch (code) {
-        case KEY_BRIGHTNESSUP:    run_cmd("brightnessctl s 5%+"); break;
-        case KEY_BRIGHTNESSDOWN:  run_cmd("brightnessctl s 5%-"); break;
-        case KEY_VOLUMEUP:        run_cmd("pamixer -i 5"); break;
-        case KEY_VOLUMEDOWN:      run_cmd("pamixer -d 5"); break;
-        case KEY_MUTE: case KEY_MEDIA: run_cmd("pamixer -t"); break;
+        case KEY_BRIGHTNESSUP:    run_cmd("brightnessctl s 10%+ -q 2>/dev/null; p=$(brightnessctl -m | awk -F, '{gsub(/%/,\"\",$4); print $4}'); notify-send -a brightness -h string:x-canonical-private-synchronous:brightness -h int:value:$p \"$p%\" -t 1000 2>/dev/null"); break;
+        case KEY_BRIGHTNESSDOWN:  run_cmd("brightnessctl s 10%- -q 2>/dev/null; [ $(brightnessctl get) -eq 0 ] && brightnessctl set 1 -q 2>/dev/null; p=$(brightnessctl -m | awk -F, '{gsub(/%/,\"\",$4); print $4}'); notify-send -a brightness -h string:x-canonical-private-synchronous:brightness -h int:value:$p \"$p%\" -t 1000 2>/dev/null"); break;
+        case KEY_VOLUMEUP:        run_cmd("pamixer -i 5; p=$(pamixer --get-volume); [ $(pamixer --get-mute) = 'true' ] && notify-send -a volume -h string:x-canonical-private-synchronous:volume -i audio-volume-muted \"Muted\" -t 1000 2>/dev/null || notify-send -a volume -h string:x-canonical-private-synchronous:volume -h int:value:$p \"$p%\" -t 1000 2>/dev/null"); break;
+        case KEY_VOLUMEDOWN:      run_cmd("pamixer -d 5; p=$(pamixer --get-volume); [ $(pamixer --get-mute) = 'true' ] && notify-send -a volume -h string:x-canonical-private-synchronous:volume -i audio-volume-muted \"Muted\" -t 1000 2>/dev/null || notify-send -a volume -h string:x-canonical-private-synchronous:volume -h int:value:$p \"$p%\" -t 1000 2>/dev/null"); break;
+        case KEY_MUTE: case KEY_MEDIA: run_cmd("pamixer -t; [ $(pamixer --get-mute) = 'true' ] && notify-send -a volume -h string:x-canonical-private-synchronous:volume -i audio-volume-muted \"Muted\" -t 1000 2>/dev/null || notify-send -a volume -h string:x-canonical-private-synchronous:volume -h int:value:$(pamixer --get-volume) \"$(pamixer --get-volume)%\" -t 1000 2>/dev/null"); break;
         case KEY_MICMUTE:         run_cmd("pamixer --source @DEFAULT_SOURCE@ -t"); break;
         case KEY_PLAYPAUSE: case KEY_STOPCD: run_cmd("playerctl play-pause"); break;
         case KEY_NEXTSONG:        run_cmd("playerctl next"); break;
@@ -129,14 +145,14 @@ int main(void) {
     signal(SIGINT, handle_signal);
 
     DeviceEntry devs[MAX_DEVICES];
-    int nfds = open_keyboards(devs, MAX_DEVICES);
+    int nfds = open_devices(devs, MAX_DEVICES);
 
     if (nfds == 0) {
         fprintf(stderr, "rocket-media-keys: no keyboards found\n");
         return 1;
     }
 
-    fprintf(stderr, "rocket-media-keys: monitoring %d keyboard(s)\n", nfds);
+    fprintf(stderr, "rocket-media-keys: monitoring %d device(s)\n", nfds);
 
     long long last_time[KEY_MAX + 1] = {0};
     int meta_down = 0;
@@ -166,14 +182,28 @@ int main(void) {
 
             if (ev.type != EV_KEY || ev.code > KEY_MAX) continue;
 
-            if (!is_media_key(ev.code) && !is_meta_key(ev.code)
-                && ev.code != KEY_LEFTALT && ev.code != KEY_RIGHTALT
-                && ev.code != KEY_LEFTSHIFT && ev.code != KEY_RIGHTSHIFT
-                && !meta_down)
-                continue;
-
             int code = ev.code;
             int value = ev.value;
+
+            /* Media keys: handle on all devices */
+            if (is_media_key(code) && (value == 1 || value == 2)) {
+                long long now = time_ms();
+                long long cd = (code == KEY_BRIGHTNESSUP || code == KEY_BRIGHTNESSDOWN)
+                               ? 80 : 150;
+                if (now - last_time[code] >= cd) {
+                    last_time[code] = now;
+                    handle_media_key(code);
+                }
+            }
+
+            /* Meta combos: only on keyboard devices */
+            if (!devs[i].is_keyboard) continue;
+
+            if (!is_media_key(code) && !is_meta_key(code)
+                && code != KEY_LEFTALT && code != KEY_RIGHTALT
+                && code != KEY_LEFTSHIFT && code != KEY_RIGHTSHIFT
+                && !meta_down)
+                continue;
 
             if (is_meta_key(code)) {
                 if (value == 1) { meta_down = 1; }
@@ -219,14 +249,6 @@ int main(void) {
                             run_cmd(cmd);
                         }
                         break;
-                }
-            }
-
-            if (is_media_key(code) && (value == 1 || value == 2)) {
-                long long now = time_ms();
-                if (now - last_time[code] >= COOLDOWN_MS) {
-                    last_time[code] = now;
-                    handle_media_key(code);
                 }
             }
         }

@@ -1,0 +1,7 @@
+#!/bin/bash
+updates=$(pacman -Qu 2>/dev/null | wc -l)
+if [ "$updates" -gt 0 ]; then
+    echo "{\"text\": \"󰚰 $updates\", \"tooltip\": \"$updates updates available\", \"class\": \"updates\"}"
+else
+    echo "{\"text\": \"\", \"tooltip\": \"System is up to date\", \"class\": \"no-updates\"}"
+fi

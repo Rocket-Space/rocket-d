@@ -104,5 +104,10 @@ if command -v rocket-media-keys &>/dev/null; then
     rocket-media-keys &
 fi
 
+# Start system tray updater icon
+if command -v cachy-update &>/dev/null; then
+    cachy-update --tray &
+fi
+
 # Keep session alive (wait for KWin)
 wait $KWIN_PID
