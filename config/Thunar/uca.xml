@@ -2,11 +2,11 @@
 <actions>
 <action>
 	<icon>utilities-terminal</icon>
-	<name>Open Terminal Here</name>
+	<name>Abrir terminal aquí</name>
 	<submenu></submenu>
 	<unique-id>1784525290644355-1</unique-id>
 	<command>kitty --single-instance --directory %f</command>
-	<description>Open kitty terminal in this directory</description>
+	<description>Abrir kitty terminal en esta carpeta</description>
 	<range></range>
 	<patterns>*</patterns>
 	<startup-notify/>
@@ -14,22 +14,22 @@
 </action>
 <action>
 	<icon>edit-copy</icon>
-	<name>Copy Full Path</name>
+	<name>Copiar ruta completa</name>
 	<submenu></submenu>
 	<unique-id>1784525290644355-2</unique-id>
 	<command>bash -c 'echo -n %f | wl-copy'</command>
-	<description>Copy the full path to clipboard</description>
+	<description>Copiar la ruta completa al portapapeles</description>
 	<range></range>
 	<patterns>*</patterns>
 	<directories/>
 </action>
 <action>
 	<icon>edit-copy</icon>
-	<name>Copy Filename</name>
+	<name>Copiar nombre de archivo</name>
 	<submenu></submenu>
 	<unique-id>1784525290644355-3</unique-id>
 	<command>bash -c 'echo -n %n | wl-copy'</command>
-	<description>Copy the filename to clipboard</description>
+	<description>Copiar el nombre del archivo al portapapeles</description>
 	<range></range>
 	<patterns>*</patterns>
 	<directories/>
