@@ -353,6 +353,22 @@ install_configs() {
     echo -e "  Installing Screen Locker config..."
     cp "$ROCKET_D_SOURCE/config/kscreenlockerrc" "$ROCKET_D_HOME/config/"
 
+    echo -e "  Installing Thunar config..."
+    mkdir -p "$ROCKET_D_HOME/config/Thunar"
+    cp "$ROCKET_D_SOURCE/config/Thunar/uca.xml" "$ROCKET_D_HOME/config/Thunar/"
+
+    echo -e "  Installing XFCE4 helpers (terminal default)..."
+    mkdir -p "$ROCKET_D_HOME/config/xfce4"
+    cp "$ROCKET_D_SOURCE/config/xfce4/helpers.rc" "$ROCKET_D_HOME/config/xfce4/"
+
+    echo -e "  Installing cachy-update desktop file..."
+    mkdir -p "$ROCKET_D_HOME/config"
+    cp "$ROCKET_D_SOURCE/config/cachy-update.desktop" "$ROCKET_D_HOME/config/"
+
+    echo -e "  Installing systemd overrides..."
+    mkdir -p "$ROCKET_D_HOME/config/systemd"
+    cp "$ROCKET_D_SOURCE/config/systemd/arch-update-tray-override.conf" "$ROCKET_D_HOME/config/systemd/"
+
     echo -e "  Installing color scheme..."
     cp "$ROCKET_D_SOURCE/theme/kdeglobals" "$ROCKET_D_HOME/theme/"
     cp "$ROCKET_D_SOURCE/theme/aurorae/rocket-drc" "$ROCKET_D_HOME/theme/aurorae/"
@@ -374,6 +390,10 @@ install_configs() {
     chmod +x "$ROCKET_D_HOME/scripts/rocket-d-battery-info" 2>/dev/null || true
     cp "$ROCKET_D_SOURCE/scripts/rocket-d-menu" "$ROCKET_D_HOME/scripts/" 2>/dev/null || true
     chmod +x "$ROCKET_D_HOME/scripts/rocket-d-menu" 2>/dev/null || true
+    cp "$ROCKET_D_SOURCE/scripts/waybar-updates" "$ROCKET_D_HOME/scripts/" 2>/dev/null || true
+    chmod +x "$ROCKET_D_HOME/scripts/waybar-updates" 2>/dev/null || true
+    cp "$ROCKET_D_SOURCE/scripts/waybar-workspaces" "$ROCKET_D_HOME/scripts/" 2>/dev/null || true
+    chmod +x "$ROCKET_D_HOME/scripts/waybar-workspaces" 2>/dev/null || true
 
     # Apply configs to ~/.config/ so each app finds them on next login
     echo -e "  Deploying configs to app locations..."
@@ -412,6 +432,28 @@ install_configs() {
 
     # Screen Locker (disable - no plasma-workspace greeter)
     cp "$ROCKET_D_HOME/config/kscreenlockerrc" "$HOME/.config/kscreenlockerrc" 2>/dev/null || true
+
+    # Thunar (terminal + context menu actions)
+    mkdir -p "$HOME/.config/Thunar"
+    cp "$ROCKET_D_HOME/config/Thunar/uca.xml" "$HOME/.config/Thunar/"
+
+    # XFCE4 helpers (sets kitty as default terminal for exo-open)
+    mkdir -p "$HOME/.config/xfce4"
+    cp "$ROCKET_D_HOME/config/xfce4/helpers.rc" "$HOME/.config/xfce4/"
+
+    # CachyOS Update desktop file (for wofi/apps)
+    mkdir -p "$HOME/.local/share/applications"
+    cp "$ROCKET_D_HOME/config/cachy-update.desktop" "$HOME/.local/share/applications/"
+
+    # CachyOS Update tray systemd override (Wayland env vars)
+    mkdir -p "$HOME/.config/systemd/user/arch-update-tray.service.d"
+    cp "$ROCKET_D_HOME/config/systemd/arch-update-tray-override.conf" "$HOME/.config/systemd/user/arch-update-tray.service.d/override.conf"
+
+    # Enable cachy-update tray
+    if command -v systemctl &>/dev/null; then
+        systemctl --user daemon-reload 2>/dev/null || true
+        systemctl --user enable arch-update-tray 2>/dev/null || true
+    fi
 
     # Fix .bash_profile to not interfere with display manager session startup
     if [ -f "$HOME/.bash_profile" ]; then
