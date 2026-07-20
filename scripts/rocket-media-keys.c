@@ -7,7 +7,6 @@
 #include <signal.h>
 #include <time.h>
 #include <linux/input.h>
-#include <stdarg.h>
 
 #define MAX_DEVICES 32
 #define COOLDOWN_MS 100
@@ -127,19 +126,6 @@ static void run_cmd(const char *cmd) {
     }
 }
 
-static FILE *dbg_log = NULL;
-
-static void dbg(const char *fmt, ...) {
-    if (!dbg_log) dbg_log = fopen("/tmp/rocket-mk.log", "a");
-    if (!dbg_log) return;
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(dbg_log, fmt, ap);
-    va_end(ap);
-    fprintf(dbg_log, "\n");
-    fflush(dbg_log);
-}
-
 static void handle_media_key(int code) {
     switch (code) {
         case KEY_BRIGHTNESSUP:    run_cmd("brightnessctl s 10%+ -q 2>/dev/null; p=$(brightnessctl -m | awk -F, '{gsub(/%/,\"\",$4); print $4}'); notify-send -a brightness -h string:x-canonical-private-synchronous:brightness -h int:value:$p \"$p%\" -t 1000 2>/dev/null"); break;
@@ -199,8 +185,6 @@ int main(void) {
             int code = ev.code;
             int value = ev.value;
 
-            dbg("dev=%d kb=%d code=%d val=%d meta=%d", i, devs[i].is_keyboard, code, value, meta_down);
-
             /* Media keys: handle on all devices */
             if (is_media_key(code) && (value == 1 || value == 2)) {
                 long long now = time_ms();
@@ -237,7 +221,6 @@ int main(void) {
 
             if (meta_down && value == 1) {
                 int num;
-                dbg("META COMBO: code=%d shift=%d alt=%d", code, shift_down, alt_down);
 
                 switch (code) {
                     case KEY_SPACE:
