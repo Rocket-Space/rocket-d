@@ -67,5 +67,5 @@ echo ""
 # Launch scrcpy if requested
 if [ "$1" = "--scrcpy" ] || [ "$1" = "-s" ]; then
     echo "Launching scrcpy..."
-    scrcpy -s localhost:$PORT
+    scrcpy -s localhost:$PORT --keyboard=disabled
 fi
