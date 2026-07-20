@@ -1,0 +1,15 @@
+# Audio jack hotplug detection
+# Notify audio subsystem on headphone/mic plug events
+ACTION=="change", SUBSYSTEM=="sound", KERNEL=="controlC*", ENV{ID_VOLUME_IGNORE}=="", RUN+="/usr/bin/udevadm trigger --subsystem-match=input"
+
+# USB storage auto-detection (backup for udisks2)
+SUBSYSTEM=="block", KERNEL=="sd[a-z][0-9]", ACTION=="add", ENV{ID_FS_USAGE}=="filesystem", TAG+="udisks2"
+
+# USB-C dock/hub detection
+SUBSYSTEM=="usb", ACTION=="add", ATTR{bDeviceClass}=="09", RUN+="/usr/bin/udevadm trigger --subsystem-match=usb"
+
+# USB audio device hotplug
+ACTION=="add", SUBSYSTEM=="sound", RUN+="/usr/bin/udevadm trigger --subsystem-match=sound"
+
+# USB input devices (mice, keyboards, gamepads)
+SUBSYSTEM=="input", ACTION=="add", ATTR{product}!="", TAG+="seat"

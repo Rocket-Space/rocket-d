@@ -175,6 +175,8 @@ install_packages_arch() {
         "btop" \
         "thunar" \
         "tumbler" \
+        "gvfs" \
+        "gvfs-mtp" \
         "polkit-gnome" \
         "xdg-desktop-portal" \
         "xdg-desktop-portal-kde" \
@@ -204,16 +206,37 @@ install_packages_arch() {
         "gcc" \
         "make"
 
-    # Group 6: Audio (PipeWire)
+    # Group 6: Audio (PipeWire + JACK + ALSA)
     install_pkg_group "Audio (PipeWire)" \
         "pipewire" \
         "pipewire-pulse" \
+        "pipewire-alsa" \
+        "pipewire-jack" \
         "wireplumber" \
         "pamixer" \
         "pavucontrol" \
-        "libpipewire"
+        "libpipewire" \
+        "alsa-utils" \
+        "alsa-firmware" \
+        "alsa-card-profiles" \
+        "jack2"
 
-    # Group 7: Display manager + Network
+    # Group 7: Bluetooth
+    install_pkg_group "Bluetooth" \
+        "bluez" \
+        "bluez-utils" \
+        "bluez-hid2hci" \
+        "bluez-obex"
+
+    # Group 8: Hardware detection (USB, USB-C, power, audio jack)
+    install_pkg_group "Hardware Detection" \
+        "udisks2" \
+        "usb_modeswitch" \
+        "upower" \
+        "power-profiles-daemon" \
+        "libinput"
+
+    # Group 9: Display manager + Network
     install_pkg_group "Display Manager & Network" \
         "greetd" \
         "greetd-tuigreet" \
@@ -401,6 +424,8 @@ install_configs() {
     chmod +x "$ROCKET_D_HOME/scripts/waybar-updates" 2>/dev/null || true
     cp "$ROCKET_D_SOURCE/scripts/waybar-workspaces" "$ROCKET_D_HOME/scripts/" 2>/dev/null || true
     chmod +x "$ROCKET_D_HOME/scripts/waybar-workspaces" 2>/dev/null || true
+    cp "$ROCKET_D_SOURCE/scripts/waybar-toggle.sh" "$ROCKET_D_HOME/scripts/" 2>/dev/null || true
+    chmod +x "$ROCKET_D_HOME/scripts/waybar-toggle.sh" 2>/dev/null || true
 
     # Apply configs to ~/.config/ so each app finds them on next login
     echo -e "  Deploying configs to app locations..."
@@ -459,6 +484,11 @@ install_configs() {
     mkdir -p "$HOME/.local/share/applications"
     cp "$ROCKET_D_HOME/config/cachy-update.desktop" "$HOME/.local/share/applications/"
 
+    # waybar-toggle.sh to ~/.local/bin/ (optional utility for manual use)
+    mkdir -p "$HOME/.local/bin"
+    cp "$ROCKET_D_HOME/scripts/waybar-toggle.sh" "$HOME/.local/bin/" 2>/dev/null || true
+    chmod +x "$HOME/.local/bin/waybar-toggle.sh" 2>/dev/null || true
+
     # CachyOS Update tray systemd override (Wayland env vars)
     mkdir -p "$HOME/.config/systemd/user/arch-update-tray.service.d"
     cp "$ROCKET_D_HOME/config/systemd/arch-update-tray-override.conf" "$HOME/.config/systemd/user/arch-update-tray.service.d/override.conf"
@@ -468,6 +498,44 @@ install_configs() {
         systemctl --user daemon-reload 2>/dev/null || true
         systemctl --user enable arch-update-tray 2>/dev/null || true
     fi
+
+    # ---- Hardware detection: USB, USB-C, audio jack, Bluetooth, power ----
+
+    # udisks2 automount for USB drives, SD cards, etc.
+    echo -e "  Configuring udisks2 automount..."
+    sudo tee /etc/udisks2/udisks2.conf > /dev/null << 'UDISKS2CONF'
+[udisks2]
+modules=*
+modules_load_preference=ondemand
+
+[defaults]
+encryption=luks2
+
+[automount]
+automount=true
+UDISKS2CONF
+
+    # plugdev group for device permissions (MTP, USB, etc.)
+    sudo groupadd -f plugdev 2>/dev/null || true
+    sudo usermod -aG plugdev "$USER" 2>/dev/null || true
+
+    # Install udev rules from repo
+    echo -e "  Installing udev rules (USB, audio jack, MTP)..."
+    sudo cp "$ROCKET_D_SOURCE/config/udev/rules.d/99-hardware-detect.rules" /etc/udev/rules.d/
+    sudo cp "$ROCKET_D_SOURCE/config/udev/rules.d/99-android-mtp.rules" /etc/udev/rules.d/
+    sudo udevadm control --reload-rules 2>/dev/null || true
+    sudo udevadm trigger 2>/dev/null || true
+
+    # Enable system services for hardware
+    echo -e "  Enabling hardware services..."
+    sudo systemctl enable --now udisks2.service 2>/dev/null || true
+    sudo systemctl enable --now bluetooth.service 2>/dev/null || true
+    sudo systemctl enable --now power-profiles-daemon.service 2>/dev/null || true
+
+    # Enable user services
+    systemctl --user enable pipewire 2>/dev/null || true
+    systemctl --user enable wireplumber 2>/dev/null || true
+    systemctl --user enable pipewire-pulse 2>/dev/null || true
 
     # Fix .bash_profile to not interfere with display manager session startup
     if [ -f "$HOME/.bash_profile" ]; then
