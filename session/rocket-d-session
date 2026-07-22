@@ -1,7 +1,6 @@
 #!/bin/bash
 # Rocket D Session Launcher
-# KWin MUST start before any services (waybar, mako, swaybg)
-# because they need the Wayland compositor to be running.
+# KWin starts first, then Rocket D Shell loads on top
 
 export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=RocketD
@@ -41,22 +40,16 @@ done
 # Export WAYLAND_DISPLAY for child processes
 export WAYLAND_DISPLAY=wayland-0
 
-# Wait a bit for KWin DBus interface to be ready
+# Wait for KWin DBus interface to be ready
 sleep 1
 
 # Load Rocket Auto-Tile script via DBus
 if [ -d "$HOME/.local/share/kwin/scripts/rocket-autotile" ]; then
     AUTOTILE_QML="$HOME/.local/share/kwin/scripts/rocket-autotile/contents/ui/main.qml"
-    
-    # Unload first if already loaded
     qdbus6 org.kde.KWin /Scripting unloadScript "rocket-autotile" 2>/dev/null || true
     sleep 0.3
-    
-    # Load with correct DBus method
     qdbus6 org.kde.KWin /Scripting loadDeclarativeScript "$AUTOTILE_QML" "rocket-autotile" 2>/dev/null || true
     sleep 1
-    
-    # Verify it loaded, retry if needed
     if ! qdbus6 org.kde.KWin /Scripting isScriptLoaded "rocket-autotile" 2>/dev/null | grep -q "true"; then
         sleep 2
         qdbus6 org.kde.KWin /Scripting loadDeclarativeScript "$AUTOTILE_QML" "rocket-autotile" 2>/dev/null || true
@@ -71,30 +64,28 @@ killall -q dunst 2>/dev/null || true
 killall -q swaybg 2>/dev/null || true
 killall -q rocket-media-keys 2>/dev/null || true
 
-# Start services (AFTER KWin is ready)
-if command -v mako &>/dev/null; then
-    mako &
-elif command -v dunst &>/dev/null; then
-    dunst &
+# Start Rocket D Shell (replaces Waybar + Mako + Wofi)
+if command -v rocket-d &>/dev/null; then
+    rocket-d run &
+elif [ -f /usr/local/share/rocket-d-shell/shell.qml ]; then
+    quickshell -p /usr/local/share/rocket-d-shell &
 fi
 
-if command -v waybar &>/dev/null; then
-    waybar &
-fi
-
-if command -v swaybg &>/dev/null; then
-    WALLPAPER="$ROCKET_D_HOME/wallpapers/default.png"
-    if [ -f "$WALLPAPER" ]; then
-        swaybg -i "$WALLPAPER" -m fill &
+# Fallback: start old-style services if Rocket D Shell is not available
+if ! command -v rocket-d &>/dev/null && ! [ -f /usr/local/share/rocket-d-shell/shell.qml ]; then
+    if command -v waybar &>/dev/null; then
+        waybar &
     fi
 fi
 
+# Polkit agent
 if [ -f /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then
     /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
 elif [ -f /usr/lib/polkit-kde-authentication-agent-1 ]; then
     /usr/lib/polkit-kde-authentication-agent-1 &
 fi
 
+# XDG desktop portal
 if [ -f /usr/libexec/xdg-desktop-portal ]; then
     /usr/libexec/xdg-desktop-portal -r &>/dev/null &
 fi

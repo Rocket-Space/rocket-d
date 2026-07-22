@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Rocket D Shell
+GenericName=Desktop Shell
+Comment=Material 3 inspired shell for Wayland compositors
+Exec=rocket-d run
+Icon=rocketlogo
+Terminal=false
+NoDisplay=true
+StartupNotify=false
+Categories=Utility;

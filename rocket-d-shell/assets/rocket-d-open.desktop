@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Rocket D
+Comment=Select an application to open links and files
+Exec=rocket-d open %u
+Icon=rocketlogo
+Terminal=false
+NoDisplay=true
+MimeType=x-scheme-handler/http;x-scheme-handler/https;x-scheme-handler/rocket-d;text/html;application/xhtml+xml;
+Categories=Utility;

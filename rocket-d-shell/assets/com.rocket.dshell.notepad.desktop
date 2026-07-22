@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Rocket D Notepad
+GenericName=Text Editor
+Comment=Quick notes and text files in the Rocket D desktop shell
+Exec=rocket-d ipc call notepad openFile %f
+Icon=rocketlogo
+Terminal=false
+NoDisplay=true
+Categories=Utility;TextEditor;
+MimeType=text/plain;text/markdown;
+StartupNotify=false

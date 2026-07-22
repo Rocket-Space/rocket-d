@@ -1,7 +1,7 @@
 #!/bin/bash
 # ╔══════════════════════════════════════════════════════════╗
 # ║                    ROCKET D SESSION                      ║
-# ║         Lightweight KWin + Omarchy Visual Style          ║
+# ║       Lightweight KWin + Rocket D Shell                  ║
 # ╚══════════════════════════════════════════════════════════╝
 
 ROCKET_D_HOME="$HOME/.config/rocket-d"
@@ -29,6 +29,9 @@ fi
 if [ -f "$ROCKET_D_HOME/config/kwinrulesrc" ]; then
     cp "$ROCKET_D_HOME/config/kwinrulesrc" "$HOME/.config/kwinrulesrc" 2>/dev/null || true
 fi
+if [ -f "$ROCKET_D_HOME/config/kglobalshortcutsrc" ]; then
+    cp "$ROCKET_D_HOME/config/kglobalshortcutsrc" "$HOME/.config/kglobalshortcutsrc" 2>/dev/null || true
+fi
 
 # --- Apply color scheme ---
 if [ -f "$ROCKET_D_HOME/theme/kdeglobals" ]; then
@@ -36,12 +39,5 @@ if [ -f "$ROCKET_D_HOME/theme/kdeglobals" ]; then
 fi
 
 # --- Deploy app configs ---
-mkdir -p "$HOME/.config/waybar" "$HOME/.config/wofi" "$HOME/.config/kitty" "$HOME/.config/mako"
-cp "$ROCKET_D_HOME/config/waybar/config.jsonc" "$HOME/.config/waybar/" 2>/dev/null || true
-cp "$ROCKET_D_HOME/config/waybar/style.css" "$HOME/.config/waybar/" 2>/dev/null || true
-cp "$ROCKET_D_HOME/config/wofi/config" "$HOME/.config/wofi/" 2>/dev/null || true
-cp "$ROCKET_D_HOME/config/wofi/config-menu" "$HOME/.config/wofi/" 2>/dev/null || true
-cp "$ROCKET_D_HOME/config/wofi/style.css" "$HOME/.config/wofi/" 2>/dev/null || true
-cp "$ROCKET_D_HOME/config/wofi/style-menu.css" "$HOME/.config/wofi/" 2>/dev/null || true
+mkdir -p "$HOME/.config/kitty"
 cp "$ROCKET_D_HOME/config/kitty/kitty.conf" "$HOME/.config/kitty/" 2>/dev/null || true
-cp "$ROCKET_D_HOME/config/mako/config" "$HOME/.config/mako/" 2>/dev/null || true
